@@ -2,6 +2,7 @@ from django.db import models
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
+from model_utils.managers import InheritanceManager
 from .managers import UserManager
 
 
@@ -25,4 +26,37 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class Profile(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name='profile')
+
+
+class Asset(models.Model):
+    objects = InheritanceManager()
+
+# class IsraelPaper(Asset):
+    # company = models.CharField()
+
+
+class USPaper(Asset):
+    ticker = models.CharField(max_length=6)
+    company = models.CharField(max_length=128)
+
+
+class Crypto(Asset):
+    name = models.CharField(max_length=30)
+
+
+class Portfolio(models.Model):
+    # link_uid
+    profile = models.ForeignKey(
+        Profile, on_delete=models.CASCADE, related_name='portfolio')
+    is_shared = models.BooleanField(default=True)
+
+
+class PortfolioAction(models.Model):
+    # Buy / Sell
+    # action_type =
+    portfolio = models.ForeignKey(
+        Portfolio, on_delete=models.CASCADE, related_name='actions')
+    asset = models.ForeignKey(
+        Asset, on_delete=models.CASCADE, related_name='actions')
