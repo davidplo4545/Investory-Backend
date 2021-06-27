@@ -108,6 +108,16 @@ class IsraeliPaperScraper:
         with open(file_path, mode='w', newline='', encoding='utf8') as json_file:
             json.dump(paper_dict, json_file)
 
+    def get_last_data_point(self, paper_id):
+        url = f'https://www.bizportal.co.il/forex/quote/ajaxrequests/paperdatagraphjson?period=fiveyearly&paperID={paper_id}'
+        HEADER = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36'}
+        r = requests.get(url, headers=HEADER)
+        try:
+            return r.json()['points'][0]
+        except:
+            return None
+
     def scrape_isr_papers(self, stocks_data, thread_id):
         for row in stocks_data:
             name, symbol, paper_id, paper_type = (
@@ -115,31 +125,70 @@ class IsraeliPaperScraper:
             self.json_result.append(self.scrape_stock(
                 name, symbol, paper_id, paper_type))
 
+    def update_stocks_data(self, stocks_data):
+        for stock in stocks_data:
+            last_point = self.get_last_data_point(stock['id'])
+            curr_last_point = stock['data_points']
+            if curr_last_point:
+                curr_last_point = curr_last_point[0]
+            if last_point != curr_last_point and last_point != None and curr_last_point:
+                stock['data_points'].append(last_point)
+                self.json_result.append(stock)
+        print(f'ended {len(stocks_data)} stocks')
+
     def scrape_all(self):
-        with open(self.isr_stocks_csv_path, encoding='utf8') as csv_file:
-            csv_reader = csv.reader(csv_file)
-            rows = (list(csv_reader))
-            if len(rows) % 100 == 0:
-                threads_count = len(rows) // 100
-            else:
-                threads_count = len(rows) // 100 + 1
+        self.json_result = []
+        json_file_path = os.path.join(DIR_PATH, 'isr_stocks.json')
+        if os.path.isfile(json_file_path):
+            with open(json_file_path, mode='r', encoding='utf8') as json_file:
+                json_data = json.load(json_file)
+                rows = (list(json_data))
 
-            threads = []
-            for i in range(threads_count):
-                if i == threads_count - 1:
-                    scraping_rows = rows[i * 100:]
+                if len(rows) % 100 == 0:
+                    threads_count = len(rows) // 100
                 else:
-                    scraping_rows = rows[i * 100: (i + 1) * 100]
-                x = threading.Thread(target=self.scrape_isr_papers,
-                                     args=(scraping_rows, i + 1,))
-                threads.append(x)
-                x.start()
-            for thread in threads:
-                thread.join()
+                    threads_count = len(rows) // 100 + 1
 
-        file_path = os.path.join(DIR_PATH, 'isr_stocks.json')
-        with open(file_path, mode='w', newline='', encoding='utf8') as json_file:
-            json.dump(self.json_result, json_file)
+                threads = []
+                for i in range(threads_count):
+                    if i == threads_count - 1:
+                        scraping_rows = rows[i * 100:]
+                    else:
+                        scraping_rows = rows[i * 100: (i + 1) * 100]
+                    x = threading.Thread(target=self.update_stocks_data,
+                                         args=(scraping_rows,))
+                    threads.append(x)
+                    x.start()
+                for thread in threads:
+                    thread.join()
+
+            with open(json_file_path, mode='w', newline='', encoding='utf8') as json_file:
+                json.dump(self.json_result, json_file)
+            print('Updated the json data')
+        else:
+            with open(self.isr_stocks_csv_path, encoding='utf8') as csv_file:
+                csv_reader = csv.reader(csv_file)
+                rows = (list(csv_reader))
+                if len(rows) % 100 == 0:
+                    threads_count = len(rows) // 100
+                else:
+                    threads_count = len(rows) // 100 + 1
+
+                threads = []
+                for i in range(threads_count):
+                    if i == threads_count - 1:
+                        scraping_rows = rows[i * 100:]
+                    else:
+                        scraping_rows = rows[i * 100: (i + 1) * 100]
+                    x = threading.Thread(target=self.scrape_isr_papers,
+                                         args=(scraping_rows, i + 1,))
+                    threads.append(x)
+                    x.start()
+                for thread in threads:
+                    thread.join()
+
+            with open(json_file_path, mode='w', newline='', encoding='utf8') as json_file:
+                json.dump(self.json_result, json_file)
 
 
 class USPapersScraper:
@@ -147,38 +196,91 @@ class USPapersScraper:
         self.json_result = []
         self.cryptos = ['BTC', 'ETH', 'ADA', 'DOGE', 'LTC']
 
-    def scrape_all(self):
-        file_path = os.path.join(DIR_PATH, 'us_popular.csv')
-        # read symbols to scrape (currently only the ones I've chosen)
-        with open(file_path, encoding="utf8") as csv_file:
-            csv_reader = csv.reader(csv_file)
-            rows = (list(csv_reader))[1:]
-        i = 1
-        for row in rows:
-            symbol = row[0]
-            stock_df = []
-            stock_df = yf.download(symbol, period='5y', progress=False)
-            if len(stock_df) == 0:
-                print(None)
-            else:
-                # remove columns from pandas.DataFrame
-                stock_df = stock_df.drop(
-                    columns=['Volume', 'High', 'Low', 'Open', 'Adj Close'])
-                i += 1
-                stock_json = stock_df.to_json(date_format='iso')
-                stock_json = json.loads(stock_json)
-                stock_json['type'] = row[8]
-                stock_json['symbol'] = symbol
-                stock_json['sector'] = row[6]
-                stock_json['industry'] = row[7]
-                stock_json['name'] = row[1]
-                self.json_result.append(stock_json)
-                print(f'stock number {i} done')
+    def get_last_data_point(self, ticker):
+        stock_df = []
+        symbol = ticker.upper()
+        try:
+            ticker = yf.Ticker(ticker)
+            stock_df = ticker.history(period="5y")
+            stock_list = stock_df.to_csv().replace('\r', '').split('\n')
+            dates_list = [stock.split(',')[0] for stock in stock_list[1:-1]]
+            print(dates_list)
+        except:
+            print(f'Ticker: {symbol} does not exist')
+            return
 
-        # dump data to a json file
-        file_path = os.path.join(DIR_PATH, 'us_stocks.json')
-        with open(file_path, mode='w', newline='', encoding='utf8') as json_file:
-            json.dump(self.json_result, json_file)
+    def update_stocks_data(self, stocks_data):
+        for stock in stocks_data:
+            # last_point = self.get_last_data_point(stock['id'])
+            curr_last_point = list(stock['Close'])
+            break
+            if curr_last_point:
+                curr_last_point = curr_last_point[0]
+            if last_point != curr_last_point and last_point != None and curr_last_point:
+                stock['data_points'].append(last_point)
+                self.json_result.append(stock)
+        print(f'ended {len(stocks_data)} stocks')
+
+    def scrape_all(self):
+        json_file_path = os.path.join(DIR_PATH, 'us_popular.json')
+        if os.path.isfile(json_file_path):
+            with open(json_file_path, mode='r', encoding='utf8') as json_file:
+                json_data = json.load(json_file)
+                rows = (list(json_data))
+
+                if len(rows) % 100 == 0:
+                    threads_count = len(rows) // 100
+                else:
+                    threads_count = len(rows) // 100 + 1
+
+                threads = []
+                for i in range(threads_count):
+                    if i == threads_count - 1:
+                        scraping_rows = rows[i * 100:]
+                    else:
+                        scraping_rows = rows[i * 100: (i + 1) * 100]
+                    x = threading.Thread(target=self.update_stocks_data,
+                                         args=(scraping_rows,))
+                    threads.append(x)
+                    x.start()
+                for thread in threads:
+                    thread.join()
+
+            # with open(json_file_path, mode='w', newline='', encoding='utf8') as json_file:
+            #     json.dump(self.json_result, json_file)
+            # print('Updated the json data')
+        else:
+            file_path = os.path.join(DIR_PATH, 'us_popular.csv')
+            # read symbols to scrape (currently only the ones I've chosen)
+            with open(file_path, encoding="utf8") as csv_file:
+                csv_reader = csv.reader(csv_file)
+                rows = (list(csv_reader))[1:]
+            i = 1
+            for row in rows:
+                symbol = row[0]
+                stock_df = []
+                stock_df = yf.download(symbol, period='5y', progress=False)
+                if len(stock_df) == 0:
+                    print(None)
+                else:
+                    # remove columns from pandas.DataFrame
+                    stock_df = stock_df.drop(
+                        columns=['Volume', 'High', 'Low', 'Open', 'Adj Close'])
+                    i += 1
+                    stock_json = stock_df.to_json(date_format='iso')
+                    stock_json = json.loads(stock_json)
+                    stock_json['type'] = row[8]
+                    stock_json['symbol'] = symbol
+                    stock_json['sector'] = row[6]
+                    stock_json['industry'] = row[7]
+                    stock_json['name'] = row[1]
+                    self.json_result.append(stock_json)
+                    print(f'stock number {i} done')
+
+            # dump data to a json file
+            file_path = os.path.join(DIR_PATH, 'us_stocks.json')
+            with open(file_path, mode='w', newline='', encoding='utf8') as json_file:
+                json.dump(self.json_result, json_file)
 
     def scrape_stock(self, ticker):
         stock_df = []
@@ -252,7 +354,7 @@ class USPapersScraper:
 
 # print('done israeli')
 scraper = USPapersScraper()
-scraper.scrape_stock('aal')
+scraper.get_last_data_point('aal')
 # scraper.scrape_all()
 
 # scraper.scrape_cryptos()
