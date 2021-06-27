@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from dateutil import parser
+from dateutil.parser import parse
+from datetime import datetime
 import yfinance as yf
 from pathlib import Path
 import requests
@@ -8,7 +11,7 @@ import os
 import json
 import threading
 
-DIR_PATH = Path(__file__).parent.absolute()
+DIR_PATH = os.path.join(Path(__file__).parent.absolute(), 'media')
 
 
 def scrape_maya():
@@ -100,11 +103,10 @@ class IsraeliPaperScraper:
         for point in data_points:
             data_point = {'date': point['D_p'], 'price': point['C_p']}
             paper_dict['data_points'].append(data_point)
-        
+
         file_path = os.path.join(DIR_PATH, f'{paper_id}.json')
         with open(file_path, mode='w', newline='', encoding='utf8') as json_file:
             json.dump(paper_dict, json_file)
-
 
     def scrape_isr_papers(self, stocks_data, thread_id):
         for row in stocks_data:
@@ -143,6 +145,7 @@ class IsraeliPaperScraper:
 class USPapersScraper:
     def __init__(self):
         self.json_result = []
+        self.cryptos = ['BTC', 'ETH', 'ADA', 'DOGE', 'LTC']
 
     def scrape_all(self):
         file_path = os.path.join(DIR_PATH, 'us_popular.csv')
@@ -162,7 +165,7 @@ class USPapersScraper:
                 stock_df = stock_df.drop(
                     columns=['Volume', 'High', 'Low', 'Open', 'Adj Close'])
                 i += 1
-                stock_json = stock_df.to_json()
+                stock_json = stock_df.to_json(date_format='iso')
                 stock_json = json.loads(stock_json)
                 stock_json['type'] = row[8]
                 stock_json['symbol'] = symbol
@@ -172,10 +175,10 @@ class USPapersScraper:
                 self.json_result.append(stock_json)
                 print(f'stock number {i} done')
 
-            # dump data to a json file
-            file_path = os.path.join(DIR_PATH, 'us_stocks.json')
-            with open(file_path, mode='w', newline='', encoding='utf8') as json_file:
-                json.dump(self.json_result, json_file)
+        # dump data to a json file
+        file_path = os.path.join(DIR_PATH, 'us_stocks.json')
+        with open(file_path, mode='w', newline='', encoding='utf8') as json_file:
+            json.dump(self.json_result, json_file)
 
     def scrape_stock(self, ticker):
         stock_df = []
@@ -183,23 +186,25 @@ class USPapersScraper:
         try:
             ticker = yf.Ticker(ticker)
             ticker_info = ticker.info
+            print(ticker_info)
+            print(ticker_info['quoteType'])
             quote_type = 'stock' if ticker_info['quoteType'] == 'EQUITY' else 'etf'
-            
+
             sector = ticker_info['sector'] if 'sector' in ticker_info else ''
-            industry= ticker_info['industry'] if 'industry' in ticker_info else ''
+            industry = ticker_info['industry'] if 'industry' in ticker_info else ''
             name = ticker_info['longName']
             stock_df = ticker.history(period="5y")
         except:
             print(f'Ticker: {symbol} does not exist')
             return
-        
+
         if len(stock_df) == 0:
             print(None)
         else:
             # remove columns from pandas.DataFrame
             stock_df = stock_df.drop(
-                columns=['Volume', 'High', 'Low', 'Open', 'Dividends','Stock Splits'])
-            stock_json = stock_df.to_json()
+                columns=['Volume', 'High', 'Low', 'Open', 'Dividends', 'Stock Splits'])
+            stock_json = stock_df.to_json(date_format='iso')
             stock_json = json.loads(stock_json)
             stock_json['type'] = quote_type
             stock_json['symbol'] = symbol
@@ -214,6 +219,40 @@ class USPapersScraper:
         with open(file_path, mode='w', newline='', encoding='utf8') as json_file:
             json.dump(self.json_result, json_file)
 
+    def scrape_cryptos(self):
+        i = 1
+        for crypto in self.cryptos:
+            crypto_df = []
+            yf_crypto = yf.Ticker(f'{crypto}-USD')
+            crypto_info = yf_crypto.info
+            crypto_df = yf_crypto.history(period='5y')
+            if len(crypto_df) == 0:
+                print(None)
+            else:
+                # remove columns from pandas.DataFrame
+                crypto_df = crypto_df.drop(
+                    columns=['Volume', 'High', 'Low', 'Open', 'Dividends', 'Stock Splits'])
+                i += 1
+                crypto_json = crypto_df.to_json(date_format='iso')
+                crypto_json = json.loads(crypto_json)
+                crypto_json['type'] = crypto_info['quoteType'].lower()
+                crypto_json['symbol'] = crypto
+                crypto_json['name'] = crypto_info['name']
+                self.json_result.append(crypto_json)
+                print(f'crypto {crypto} done')
 
+        # dump data to a json file
+        file_path = os.path.join(DIR_PATH, 'cryptos.json')
+        with open(file_path, mode='w', newline='', encoding='utf8') as json_file:
+            json.dump(self.json_result, json_file)
+
+
+# scraper = IsraeliPaperScraper()
+# scraper.scrape_all()
+
+# print('done israeli')
 scraper = USPapersScraper()
-scraper.scrape_stock('ba')
+scraper.scrape_stock('aal')
+# scraper.scrape_all()
+
+# scraper.scrape_cryptos()

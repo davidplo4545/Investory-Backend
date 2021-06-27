@@ -2,8 +2,24 @@ from django.db import models
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
+from django.db.models.fields import related
 from model_utils.managers import InheritanceManager
 from .managers import UserManager
+
+ETF = "ETF"
+STOCK = "STOCK"
+
+PAPER_TYPE_CHOICES = (
+    (ETF, "ETF"),
+    (STOCK, "STOCK"),
+)
+
+BUY = "BUY"
+SELL = "SELL"
+ACTION_CHOICES = (
+    (BUY, "BUY"),
+    (SELL, "SELL"),
+)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -33,30 +49,61 @@ class Profile(models.Model):
 class Asset(models.Model):
     objects = InheritanceManager()
 
-# class IsraelPaper(Asset):
-    # company = models.CharField()
+
+class IsraelPaper(Asset):
+    paper_id = models.IntegerField(required=True)
+    type = models.CharField(
+        max_length=9, choices=PAPER_TYPE_CHOICES, default="STOCK")
+    name = models.CharField(max_length=120)
+    symbol = models.CharField(max_length=30, blank=True)
+    last_price = models.FloatField(blank=True)
 
 
 class USPaper(Asset):
-    ticker = models.CharField(max_length=6)
-    company = models.CharField(max_length=128)
+    type = models.CharField(
+        max_length=9, choices=PAPER_TYPE_CHOICES, default="STOCK")
+    name = models.CharField(max_length=120)
+    symbol = models.CharField(max_length=6)
+    last_price = models.FloatField(blank=True)
+    sector = models.CharField(max_length=200, blank=True)
+    industry = models.CharField(max_length=200, blank=True)
 
 
 class Crypto(Asset):
+    symbol = models.CharField(max_length=6)
     name = models.CharField(max_length=30)
+    last_price = models.FloatField(blank=True)
+
+
+class AssetRecord(models.Model):
+    asset = models.ForeignKey(
+        Asset, on_delete=models.CASCADE, related_name="records")
+    date = models.DateField(required=True)
+    value = models.FloatField(required=True)
 
 
 class Portfolio(models.Model):
+    name = models.CharField(max_length=200)
     # link_uid
     profile = models.ForeignKey(
         Profile, on_delete=models.CASCADE, related_name='portfolio')
     is_shared = models.BooleanField(default=True)
+    created_at = models.DateField(auto_now_add=True)
+    started_at = models.DateField(blank=True)
 
 
 class PortfolioAction(models.Model):
-    # Buy / Sell
-    # action_type =
+    type = models.CharField(
+        max_length=3, choices=ACTION_CHOICES, default="BUY")
     portfolio = models.ForeignKey(
         Portfolio, on_delete=models.CASCADE, related_name='actions')
     asset = models.ForeignKey(
         Asset, on_delete=models.CASCADE, related_name='actions')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class PortfolioRecord(models.Model):
+    portfolio = models.ForeignKey(
+        Portfolio, on_delete=models.CASCADE, related_name='records')
+    date = models.DateField()
+    value = models.FloatField()
