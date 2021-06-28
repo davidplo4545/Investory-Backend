@@ -51,12 +51,12 @@ class Asset(models.Model):
 
 
 class IsraelPaper(Asset):
-    paper_id = models.IntegerField(required=True)
+    paper_id = models.IntegerField()
     type = models.CharField(
         max_length=9, choices=PAPER_TYPE_CHOICES, default="STOCK")
     name = models.CharField(max_length=120)
-    symbol = models.CharField(max_length=30, blank=True)
-    last_price = models.FloatField(blank=True)
+    symbol = models.CharField(max_length=30, blank=True, null=True)
+    last_price = models.FloatField(blank=True, null=True)
 
 
 class USPaper(Asset):
@@ -64,22 +64,22 @@ class USPaper(Asset):
         max_length=9, choices=PAPER_TYPE_CHOICES, default="STOCK")
     name = models.CharField(max_length=120)
     symbol = models.CharField(max_length=6)
-    last_price = models.FloatField(blank=True)
-    sector = models.CharField(max_length=200, blank=True)
-    industry = models.CharField(max_length=200, blank=True)
+    last_price = models.FloatField(blank=True, null=True)
+    sector = models.CharField(max_length=200, blank=True, null=True)
+    industry = models.CharField(max_length=200, blank=True, null=True)
 
 
 class Crypto(Asset):
     symbol = models.CharField(max_length=6)
     name = models.CharField(max_length=30)
-    last_price = models.FloatField(blank=True)
+    last_price = models.FloatField(blank=True, null=True)
 
 
 class AssetRecord(models.Model):
     asset = models.ForeignKey(
         Asset, on_delete=models.CASCADE, related_name="records")
-    date = models.DateField(required=True)
-    value = models.FloatField(required=True)
+    date = models.DateField()
+    price = models.FloatField()
 
 
 class Portfolio(models.Model):
@@ -94,7 +94,7 @@ class Portfolio(models.Model):
 
 class PortfolioAction(models.Model):
     type = models.CharField(
-        max_length=3, choices=ACTION_CHOICES, default="BUY")
+        max_length=4, choices=ACTION_CHOICES, default="BUY")
     portfolio = models.ForeignKey(
         Portfolio, on_delete=models.CASCADE, related_name='actions')
     asset = models.ForeignKey(
@@ -106,4 +106,4 @@ class PortfolioRecord(models.Model):
     portfolio = models.ForeignKey(
         Portfolio, on_delete=models.CASCADE, related_name='records')
     date = models.DateField()
-    value = models.FloatField()
+    price = models.FloatField()
