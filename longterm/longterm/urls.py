@@ -4,19 +4,20 @@ from django.contrib.auth.models import User
 from rest_framework import serializers, viewsets, routers
 from api import views
 
+
 # Routers provide a way of automatically determining the URL conf.
 router = routers.DefaultRouter()
-# router.register(r'users', UserViewSet)
+router.register(r'assets', views.AssetViewSet)
 
 
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.
 urlpatterns = [
-    # path('', include(router.urls)),
+    path('', include(router.urls)),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path('api/', include('rest_auth.urls')),  # login / logout / user
     path('api/register/', include('rest_auth.registration.urls')),
     path('script/isr', views.run_script_isr),
     path('script/us', views.run_script_us),
-    path('script/crypto', views.run_script_crypto),
+    # path('script/crypto', views.run_script_crypto),
 ]

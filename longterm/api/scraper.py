@@ -61,7 +61,7 @@ class IsraeliPaperScraper:
             paper.last_price = last_price
             return (paper, [new_record])
 
-        except IsraelPaper.DoesNotExist:
+        except:
             paper = IsraelPaper()
             name = name.replace('"', '')
             paper_dict = {'type': '',
@@ -218,6 +218,7 @@ class USPapersScraper:
             paper = USPaper.objects.get(symbol=symbol)
             last_date = list(records_json['Close'].keys())[-1]
             last_price = records_json['Close'][last_date]
+            print(parse(last_date))
             try:
                 # check if record with same date already exists
                 # and updates it if it does
@@ -225,8 +226,10 @@ class USPapersScraper:
                     asset=paper, date=parse(last_date))
                 last_db_record.price = last_price
                 paper.last_price = last_price
+                print(f'{symbol} Updating old record')
                 return (paper, [], [last_db_record])
             except:
+                print(f'{symbol} Creating new record')
                 # creates a new record with a new price and date
                 new_record = AssetRecord(
                     asset=paper, date=parse(last_date), price=last_price)

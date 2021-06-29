@@ -70,7 +70,7 @@ class USPaper(Asset):
 
 
 class Crypto(Asset):
-    symbol = models.CharField(max_length=6)
+    symbol = models.CharField(max_length=20)
     name = models.CharField(max_length=30)
     last_price = models.FloatField(blank=True, null=True)
 
