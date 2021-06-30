@@ -1,0 +1,21 @@
+ttcf 1286
+
+{
+    "name": "Growth Portfolio",
+    "actions":[
+         {
+           "type":"BUY",
+           "asset":1286,
+           "quantity":20,
+           "share_price":22.5,
+           "completed_at": "2021-06-30"
+         },
+        {
+           "type":"BUY",
+           "asset":1286,
+           "quantity":30,
+           "share_price":25,
+           "completed_at": "2021-05-30"
+         }
+    ]
+}

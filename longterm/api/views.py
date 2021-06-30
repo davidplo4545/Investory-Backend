@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from .models import User, Profile, Asset, IsraelPaper, USPaper, Crypto, AssetRecord,\
     Portfolio, PortfolioRecord, PortfolioAction
-from .serializers import AssetSerializer, PortfolioSerializer, ProfileUpdateSerializer, UserSerializer
+from .serializers import AssetSerializer, PortfolioCreateSerializer, PortfolioSerializer, ProfileUpdateSerializer, UserSerializer
 from .scraper import IsraeliPaperScraper, USPapersScraper
 
 
@@ -96,9 +96,16 @@ class PortfolioViewSet(viewsets.ModelViewSet):
             self.queryset, many=True)
         return Response(serializer.data)
 
+    def create(self, request, *args, **kwargs):
+        print(request.data)
+        serializer = PortfolioCreateSerializer(data=request.data)
+        serializer.is_valid()
+        self.perform_create(serializer)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     def perform_create(self, serializer):
         # here you will send `created_by` in the `validated_data`
-        serializer.save(profile=Profile)
+        serializer.save(profile=self.request.user.profile)
 
         # @api_view(['GET', 'POST'])
         # def run_script_isr(request):

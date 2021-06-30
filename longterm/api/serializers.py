@@ -44,8 +44,6 @@ class UserSerializer(serializers.ModelSerializer):
         profile.save()
         return user
 
-        return user
-
 
 class AssetSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
@@ -108,6 +106,9 @@ class CryptoSerializer(serializers.ModelSerializer):
 
 
 class PortfolioActionSerializer(serializers.ModelSerializer):
+    asset = serializers.PrimaryKeyRelatedField(
+        queryset=Asset.objects.select_subclasses())
+
     class Meta:
         model = PortfolioAction
         fields = '__all__'
@@ -117,6 +118,31 @@ class PortfolioRecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = PortfolioRecord
         fields = '__all__'
+
+
+class PortfolioCreateSerializer(serializers.ModelSerializer):
+    actions = PortfolioActionSerializer(many=True)
+
+    class Meta:
+        model = Portfolio
+        fields = ['name', 'actions']
+
+    def validate(self, data):
+        print(data)
+        print('sdsadsad')
+        # foo = data.pop("foo", None)
+        # # Do what you want with your value
+        return super().validate(data)
+
+    def create(self, validated_data):
+        print(validated_data)
+        portfolio = Portfolio(name=validated_data['name'])
+        # actions = Portfolio
+        # user.set_password(validated_data['password'])
+        # user.save()
+        # profile = Profile(user=user)
+        # profile.save()
+        # return user
 
 
 class PortfolioSerializer(serializers.ModelSerializer):

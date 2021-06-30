@@ -1,3 +1,4 @@
+import datetime
 from django.db import models
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
@@ -101,7 +102,14 @@ class PortfolioAction(models.Model):
         Portfolio, on_delete=models.CASCADE, related_name='actions')
     asset = models.ForeignKey(
         Asset, on_delete=models.CASCADE, related_name='actions')
-    created_at = models.DateTimeField(auto_now_add=True)
+    quantity = models.FloatField(default=0)
+    share_price = models.FloatField(default=0)
+    total_value = models.FloatField(blank=True, default=0, editable=False)
+    completed_at = models.DateField(default=datetime.date.today)
+
+    def save(self, *args, **kwargs):
+        self.total_value = self.price * self.quantity
+        super(PortfolioAction, self).save(*args, **kwargs)
 
 
 class PortfolioRecord(models.Model):
