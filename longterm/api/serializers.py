@@ -1,7 +1,9 @@
 from rest_framework import serializers
+from rest_framework import viewsets, status
+from rest_framework.response import Response
 
-from api.models import User, Profile, Asset, USPaper, IsraelPaper, Crypto, AssetRecord, \
-    Portfolio, PortfolioAction, PortfolioRecord
+from api.models import ACTION_CHOICES, User, Profile, Asset, USPaper, IsraelPaper, Crypto, AssetRecord, \
+    Portfolio, PortfolioAction, PortfolioRecord, ACTION_CHOICES
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -105,13 +107,33 @@ class CryptoSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class PortfolioActionSerializer(serializers.ModelSerializer):
+class PortfolioActionSerializer(serializers.Serializer):
     asset = serializers.PrimaryKeyRelatedField(
         queryset=Asset.objects.select_subclasses())
+    type = serializers.ChoiceField(choices=ACTION_CHOICES)
+    quantity = serializers.FloatField()
+    share_price = serializers.FloatField()
+    completed_at = serializers.DateField()
 
     class Meta:
-        model = PortfolioAction
-        fields = '__all__'
+        fields = ['asset', 'type', 'quantity', 'share_price', 'completed_at']
+
+    def create(self, validated_data):
+        action = PortfolioAction()
+        try:
+            asset = Asset.objects.get(id=validated_data['asset'].id)
+            action.asset = asset
+        except:
+            raise serializers.ValidationError(
+                {'error': 'Actions are not valid'})
+            # return Response({"status": "Profile has been updated."}, status=status.HTTP_200_OK)
+        action.type = validated_data['type']
+        action.quantity = validated_data['quantity']
+        action.share_price = validated_data['share_price']
+        action.completed_at = validated_data['completed_at']
+        action.portfolio = self.context['portfolio']
+        action.save()
+        return action
 
 
 class PortfolioRecordSerializer(serializers.ModelSerializer):
@@ -127,22 +149,33 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
         model = Portfolio
         fields = ['name', 'actions']
 
-    def validate(self, data):
-        print(data)
-        print('sdsadsad')
-        # foo = data.pop("foo", None)
-        # # Do what you want with your value
-        return super().validate(data)
-
     def create(self, validated_data):
-        print(validated_data)
         portfolio = Portfolio(name=validated_data['name'])
-        # actions = Portfolio
-        # user.set_password(validated_data['password'])
-        # user.save()
-        # profile = Profile(user=user)
-        # profile.save()
-        # return user
+        portfolio.profile = self.context['profile']
+        actions = validated_data['actions']
+        valid_serializers = []
+        for action in actions:
+            action['asset'] = action['asset'].pk
+            serializer = PortfolioActionSerializer(
+                data=action, context={'portfolio': portfolio})
+            if serializer.is_valid(raise_exception=True):
+                valid_serializers.append(serializer)
+            else:
+                raise serializers.ValidationError(
+                    {'error': 'actions are not valid'})
+
+        # create the action models through the serializers only
+        # if all of them are valid
+        if valid_serializers:
+            portfolio.save()
+            for serializer in valid_serializers:
+                serializer.save()
+
+        # set the earliest portfolio action date
+        portfolio.started_at = portfolio.actions.order_by('completed_at')[
+            0].completed_at
+        portfolio.save()
+        return portfolio
 
 
 class PortfolioSerializer(serializers.ModelSerializer):

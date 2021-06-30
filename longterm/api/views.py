@@ -1,8 +1,9 @@
+import json
 from django.shortcuts import render
 
 from rest_framework import viewsets, status
-from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
+from rest_framework.decorators import api_view, action
 from django.shortcuts import get_object_or_404
 from .models import User, Profile, Asset, IsraelPaper, USPaper, Crypto, AssetRecord,\
     Portfolio, PortfolioRecord, PortfolioAction
@@ -21,7 +22,6 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['patch'])
     def update_profile(self, request):
-        print(self.request.user.id)
         profile = Profile.objects.get(user__id=self.request.user.id)
         print(profile)
         serializer = ProfileUpdateSerializer(
@@ -89,41 +89,43 @@ class AssetViewSet(viewsets.ViewSet):
 
 class PortfolioViewSet(viewsets.ModelViewSet):
     serializer_class = PortfolioSerializer
-    queryset = Portfolio.objects.all()
+
+    def get_queryset(self):
+        return Portfolio.objects.all()
 
     def list(self, request):
+        queryset = self.get_queryset()
         serializer = self.serializer_class(
-            self.queryset, many=True)
+            queryset, many=True)
         return Response(serializer.data)
 
-    def create(self, request, *args, **kwargs):
-        print(request.data)
-        serializer = PortfolioCreateSerializer(data=request.data)
-        serializer.is_valid()
+    def create(self, request):
+        serializer = PortfolioCreateSerializer(data=request.data, context={
+                                               'profile': self.request.user.profile})
+        serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({"status": "Portfolio was created."}, status=status.HTTP_200_OK)
 
     def perform_create(self, serializer):
-        # here you will send `created_by` in the `validated_data`
-        serializer.save(profile=self.request.user.profile)
+        serializer.save()
 
-        # @api_view(['GET', 'POST'])
-        # def run_script_isr(request):
-        #     scraper = IsraeliPaperScraper()
-        #     print('running script')
-        #     scraper.scrape_to_database()
-        #     return Response({'status': 'ended script'})
+    # @api_view(['GET', 'POST'])
+    # def run_script_isr(request):
+    #     scraper = IsraeliPaperScraper()
+    #     print('running script')
+    #     scraper.scrape_to_database()
+    #     return Response({'status': 'ended script'})
 
-        # @api_view(['GET', 'POST'])
-        # def run_script_us(request):
-        #     scraper = USPapersScraper()
-        #     print('running us script')
-        #     scraper.scrape_to_database()
-        #     return Response({'status': 'ended us script'})
+    # @api_view(['GET', 'POST'])
+    # def run_script_us(request):
+    #     scraper = USPapersScraper()
+    #     print('running us script')
+    #     scraper.scrape_to_database()
+    #     return Response({'status': 'ended us script'})
 
-        # @api_view(['GET', 'POST'])
-        # def run_script_crypto(request):
-        #     scraper = USPapersScraper()
-        #     print('running crypto script')
-        #     scraper.scrape_cryptos_to_database()
-        #     return Response({'status': 'ended crypto script'})
+    # @api_view(['GET', 'POST'])
+    # def run_script_crypto(request):
+    #     scraper = USPapersScraper()
+    #     print('running crypto script')
+    #     scraper.scrape_cryptos_to_database()
+    #     return Response({'status': 'ended crypto script'})

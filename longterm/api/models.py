@@ -86,13 +86,13 @@ class AssetRecord(models.Model):
 
 
 class Portfolio(models.Model):
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=200, unique=True)
     # link_uid
     profile = models.ForeignKey(
         Profile, on_delete=models.CASCADE, related_name='portfolio')
     is_shared = models.BooleanField(default=True)
     created_at = models.DateField(auto_now_add=True)
-    started_at = models.DateField(blank=True)
+    started_at = models.DateField(blank=True, null=True)
 
 
 class PortfolioAction(models.Model):
@@ -108,7 +108,7 @@ class PortfolioAction(models.Model):
     completed_at = models.DateField(default=datetime.date.today)
 
     def save(self, *args, **kwargs):
-        self.total_value = self.price * self.quantity
+        self.total_value = self.share_price * self.quantity
         super(PortfolioAction, self).save(*args, **kwargs)
 
 

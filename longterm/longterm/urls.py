@@ -9,7 +9,7 @@ from api import views
 router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
 router.register(r'assets', views.AssetViewSet, basename='Asset')
-router.register(r'portfolios', views.PortfolioViewSet)
+router.register(r'portfolios', views.PortfolioViewSet, basename='dsds')
 
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.
