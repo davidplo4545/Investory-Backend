@@ -274,7 +274,7 @@ class USPapersScraper:
             print(f'Scraping Crypto {crypto}')
             # check if ticker already exists in database
             try:
-                crypto_obj = Crypto.objects.get(symbol=f'{crypto}-USD')
+                crypto_obj = Crypto.objects.get(symbol=crypto)
                 last_date = list(data_points.keys())[-1]
                 last_price = data_points[last_date]
                 try:
@@ -297,7 +297,7 @@ class USPapersScraper:
                     continue
             except:
                 crypto_obj = Crypto()
-                crypto_obj.symbol = f'{crypto}-USD'
+                crypto_obj.symbol = crypto
                 crypto_obj.name = crypto_info['name']
                 records = []
 

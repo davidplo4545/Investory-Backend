@@ -8,3 +8,545 @@ ABNB,Airbnb Inc. Class A Common Stock,stock
 ABT,Abbott Laboratories,stock
 ACN,Accenture plc,stock
 ADBE,Adobe Systems Inc,stock
+ADI,"Analog Devices, Inc.",stock
+ADM,Archer-Daniels-Midland Co,stock
+ADP,Automatic Data Processing,stock
+ADS,Alliance Data Systems,stock
+ADSK,Autodesk Inc,stock
+AEE,Ameren Corp,stock
+AEP,American Electric Power,stock
+AES,AES Corp,stock
+AET,Aetna Inc,stock
+AFL,AFLAC Inc,stock
+AIG,"American International Group, Inc.",stock
+AIV,Apartment Investment & Management,stock
+AIZ,Assurant Inc,stock
+AJG,Arthur J. Gallagher & Co.,stock
+AKAM,Akamai Technologies Inc,stock
+ALB,Albemarle Corp,stock
+ALGN,Align Technology,stock
+ALK,Alaska Air Group Inc,stock
+ALL,Allstate Corp,stock
+ALLE,Allegion,stock
+ALXN,Alexion Pharmaceuticals,stock
+AMC,AMC Entertainment Holdings Inc. Class A Common Stock,stock
+AMD,Advanced Micro Devices Inc,stock
+AME,AMETEK Inc,stock
+AMG,Affiliated Managers Group Inc,stock
+AMGN,Amgen Inc,stock
+AMP,Ameriprise Financial,stock
+AMT,American Tower Corp A,stock
+AMZN,Amazon.com Inc,stock
+ANDV,Andeavor,stock
+ANET,Arista Networks Inc.,stock
+ANSS,ANSYS,stock
+ANTM,Anthem Inc.,stock
+AON,Aon plc,stock
+AOS,A.O. Smith Corp,stock
+APA,Apache Corporation,stock
+APD,Air Products & Chemicals Inc,stock
+APH,Amphenol Corp,stock
+APTV,Aptiv Plc,stock
+ARE,Alexandria Real Estate Equities Inc,stock
+ARNC,Arconic Inc,stock
+ASML,ASML Holding N.V.,stock
+ATVI,Activision Blizzard,stock
+AVB,"AvalonBay Communities, Inc.",stock
+AVGO,Broadcom,stock
+AVLR,Avalara Inc.,stock
+AVY,Avery Dennison Corp,stock
+AWK,American Water Works Company Inc,stock
+AXP,American Express Co,stock
+AYI,Acuity Brands Inc,stock
+AZO,AutoZone Inc,stock
+BA,Boeing Company,stock
+BABA,Alibaba Group Holding Limited American Depositary Shares each representing eight Ordinary share,stock
+BAC,Bank of America Corp,stock
+BAX,Baxter International Inc.,stock
+BB,BlackBerry Limited Common Stock,stock
+BBY,Best Buy Co. Inc.,stock
+BDX,Becton Dickinson,stock
+BEN,Franklin Resources,stock
+BHF,Brighthouse Financial Inc,stock
+BIIB,Biogen Inc.,stock
+BK,The Bank of New York Mellon Corp.,stock
+BLK,BlackRock,stock
+BLL,Ball Corp,stock
+BMY,Bristol-Myers Squibb,stock
+BR,Broadridge Financial Solutions Inc.,stock
+BRK.B,Berkshire Hathaway,stock
+BSX,Boston Scientific,stock
+BWA,BorgWarner,stock
+BXP,Boston Properties,stock
+BYND,Beyond Meat Inc. Common Stock,stock
+C,Citigroup Inc.,stock
+CA,"CA, Inc.",stock
+CAG,Conagra Brands,stock
+CAJ,Canon Inc.,stock
+CAT,Caterpillar Inc.,stock
+CB,Chubb Limited,stock
+CBOE,CBOE Holdings,stock
+CCI,Crown Castle International Corp.,stock
+CCIV,Churchill Capital Corp IV Class A Common Stock,stock
+CCL,Carnival Corp.,stock
+CDNS,Cadence Design Systems,stock
+CDW,CDW Corporation,stock
+CERN,Cerner,stock
+CF,CF Industries Holdings Inc,stock
+CFG,Citizens Financial Group,stock
+CHD,Church & Dwight,stock
+CHK,Chesapeake Energy,stock
+CHKP,Check Point Software Technologies Ltd.,stock
+CHRW,C. H. Robinson Worldwide,stock
+CHTR,Charter Communications,stock
+CI,CIGNA Corp.,stock
+CINF,Cincinnati Financial,stock
+CL,Colgate-Palmolive,stock
+CLOV,Clover Health Investments Corp. Class A Common Stock,stock
+CLX,The Clorox Company,stock
+CMA,Comerica Inc.,stock
+CMCSA,Comcast Corp.,stock
+CME,CME Group Inc.,stock
+CMG,Chipotle Mexican Grill,stock
+CMI,Cummins Inc.,stock
+CMS,CMS Energy,stock
+CNC,Centene Corporation,stock
+CNP,CenterPoint Energy,stock
+COF,Capital One Financial,stock
+COG,Cabot Oil & Gas,stock
+COIN,Coinbase Global Inc. Class A Common Stock,stock
+COKE,Coca-Cola Consolidated Inc. Common Stock,stock
+COL,Rockwell Collins,stock
+COO,The Cooper Companies,stock
+COP,ConocoPhillips,stock
+COST,Costco Wholesale Corp.,stock
+COTY,"Coty, Inc",stock
+COUP,Coupa Software Incorporated,stock
+CPB,Campbell Soup,stock
+CRM,Salesforce.com,stock
+CRSR,Corsair Gaming Inc. Common Stock,stock
+CRWD,CrowdStrike Holdings Inc.,stock
+CSCO,Cisco Systems,stock
+CSRA,CSRA Inc.,stock
+CSX,CSX Corp.,stock
+CTAS,Cintas Corporation,stock
+CTSH,Cognizant Technology Solutions,stock
+CTXS,Citrix Systems,stock
+CVS,CVS Health,stock
+CVX,Chevron Corp.,stock
+D,Dominion Energy,stock
+DAL,Delta Air Lines Inc.,stock
+DBX,Dropbox Inc. Class A Common Stock,stock
+DDD,3D Systems Corporation Common Stock,stock
+DDOG,Datadog Inc.,stock
+DE,Deere & Co.,stock
+DELL,Dell Technologies Inc.,stock
+DFS,Discover Financial Services,stock
+DG,Dollar General,stock
+DGX,Quest Diagnostics,stock
+DHI,D. R. Horton,stock
+DHR,Danaher Corp.,stock
+DIS,The Walt Disney Company,stock
+DISCA,Discovery Communications-A,stock
+DISCK,Discovery Communications-C,stock
+DISH,Dish Network,stock
+DLR,Digital Realty Trust Inc,stock
+DLTR,Dollar Tree,stock
+DOCU,DocuSign Inc.,stock
+DOV,Dover Corp.,stock
+DRE,Duke Realty Corp,stock
+DRI,Darden Restaurants,stock
+DTE,DTE Energy Co.,stock
+DUK,Duke Energy,stock
+DVA,DaVita Inc.,stock
+DVN,Devon Energy Corp.,stock
+DXC,DXC Technology,stock
+EA,Electronic Arts,stock
+EBAY,eBay Inc.,stock
+ECL,Ecolab Inc.,stock
+ED,Consolidated Edison,stock
+EFX,Equifax Inc.,stock
+EIX,Edison Int'l,stock
+EL,Estee Lauder Cos.,stock
+EMN,Eastman Chemical,stock
+EMR,Emerson Electric Company,stock
+ENPH,Enphase Energy Inc. Common Stock,stock
+EOG,EOG Resources,stock
+EPAM,EPAM Systems Inc.,stock
+EQIX,Equinix,stock
+EQR,Equity Residential,stock
+EQT,EQT Corporation,stock
+ERIC,Telefonaktiebolaget LM Ericsson (publ),stock
+ES,Eversource Energy,stock
+ESRX,Express Scripts,stock
+ESS,"Essex Property Trust, Inc.",stock
+ETN,Eaton Corporation,stock
+ETR,Entergy Corp.,stock
+ETSY,Etsy Inc. Common Stock,stock
+EVHC,Envision Healthcare,stock
+EW,Edwards Lifesciences,stock
+EXC,Exelon Corp.,stock
+EXPD,Expeditors International,stock
+EXPE,Expedia Inc.,stock
+EXR,Extra Space Storage,stock
+F,Ford Motor,stock
+FAST,Fastenal Co,stock
+FB,"Facebook, Inc.",stock
+FBHS,Fortune Brands Home & Security,stock
+FCX,Freeport-McMoRan Inc.,stock
+FDX,FedEx Corporation,stock
+FE,FirstEnergy Corp,stock
+FFIV,F5 Networks,stock
+FIS,Fidelity National Information Services,stock
+FISV,Fiserv Inc,stock
+FITB,Fifth Third Bancorp,stock
+FL,Foot Locker Inc,stock
+FLIR,FLIR Systems,stock
+FLR,Fluor Corp.,stock
+FLS,Flowserve Corporation,stock
+FLT,FLEETCOR Technologies Inc.,stock
+FMC,FMC Corporation,stock
+FOX,Twenty-First Century Fox Class B,stock
+FOXA,Twenty-First Century Fox Class A,stock
+FRT,Federal Realty Investment Trust,stock
+FTI,TechnipFMC,stock
+FTNT,Fortinet Inc.,stock
+FTV,Fortive Corp,stock
+FTV-PA,Fortive Corporation,stock
+FUBO,fuboTV Inc. Common Stock,stock
+FVRR,Fiverr International Ltd. Ordinary Shares no par value,stock
+GD,General Dynamics,stock
+GE,General Electric,stock
+GIB,CGI Inc.,stock
+GILD,Gilead Sciences,stock
+GIS,General Mills,stock
+GLW,Corning Inc.,stock
+GM,General Motors,stock
+GME,GameStop Corporation Common Stock,stock
+GOOG,Alphabet Inc Class C,stock
+GOOGL,Alphabet Inc Class A,stock
+GPC,Genuine Parts,stock
+GPN,Global Payments Inc.,stock
+GPS,Gap Inc.,stock
+GRMN,Garmin Ltd.,stock
+GS,Goldman Sachs Group,stock
+GT,Goodyear Tire & Rubber,stock
+GWW,Grainger (W.W.) Inc.,stock
+HAS,Hasbro Inc.,stock
+HBAN,Huntington Bancshares,stock
+HBI,Hanesbrands Inc,stock
+HCA,HCA Holdings,stock
+HD,Home Depot,stock
+HES,Hess Corporation,stock
+HIG,Hartford Financial Svc.Gp.,stock
+HII,Huntington Ingalls Industries,stock
+HLT,Hilton Worldwide Holdings Inc,stock
+HOG,Harley-Davidson,stock
+HOLX,Hologic,stock
+HON,Honeywell Int'l Inc.,stock
+HP,Helmerich & Payne,stock
+HPE,Hewlett Packard Enterprise,stock
+HPQ,HP Inc.,stock
+HRB,Block H&R,stock
+HRL,Hormel Foods Corp.,stock
+HSIC,Henry Schein,stock
+HST,Host Hotels & Resorts,stock
+HSY,The Hershey Company,stock
+HUBS,HubSpot Inc.,stock
+HUM,Humana Inc.,stock
+IBM,International Business Machines,stock
+ICE,Intercontinental Exchange,stock
+IDXX,IDEXX Laboratories,stock
+IFF,Intl Flavors & Fragrances,stock
+ILMN,Illumina Inc,stock
+INCY,Incyte,stock
+INFO,IHS Markit Ltd.,stock
+INFY,Infosys Limited,stock
+INTC,Intel Corp.,stock
+INTU,Intuit Inc.,stock
+IP,International Paper,stock
+IPG,Interpublic Group,stock
+IQV,IQVIA Holdings Inc.,stock
+IR,Ingersoll-Rand PLC,stock
+IRM,Iron Mountain Incorporated,stock
+ISRG,Intuitive Surgical Inc.,stock
+IT,Gartner Inc,stock
+ITW,Illinois Tool Works,stock
+IVZ,Invesco Ltd.,stock
+JBHT,J. B. Hunt Transport Services,stock
+JCI,Johnson Controls International,stock
+JNJ,Johnson & Johnson,stock
+JNPR,Juniper Networks,stock
+JPM,JPMorgan Chase & Co.,stock
+JWN,Nordstrom,stock
+K,Kellogg Co.,stock
+KEY,KeyCorp,stock
+KEYS,Keysight Technologies Inc.,stock
+KHC,Kraft Heinz Co,stock
+KIM,Kimco Realty,stock
+KLAC,KLA-Tencor Corp.,stock
+KMB,Kimberly-Clark,stock
+KMI,Kinder Morgan,stock
+KMX,Carmax Inc,stock
+KO,Coca-Cola Company (The),stock
+KR,Kroger Co.,stock
+KSS,Kohl's Corp.,stock
+KSU,Kansas City Southern,stock
+L,Loews Corp.,stock
+LB,L Brands Inc.,stock
+LEG,Leggett & Platt,stock
+LEN,Lennar Corp.,stock
+LH,Laboratory Corp. of America Holding,stock
+LKQ,LKQ Corporation,stock
+LLNW,Limelight Networks Inc. Common Stock,stock
+LLY,Lilly (Eli) & Co.,stock
+LMT,Lockheed Martin Corp.,stock
+LNC,Lincoln National,stock
+LOW,Lowe's Cos.,stock
+LRCX,Lam Research,stock
+LUV,Southwest Airlines,stock
+LYB,LyondellBasell,stock
+M,Macy's Inc.,stock
+MA,Mastercard Inc.,stock
+MAA,Mid-America Apartments,stock
+MAC,Macerich,stock
+MAR,Marriott Int'l.,stock
+MAS,Masco Corp.,stock
+MAT,Mattel Inc.,stock
+MCD,McDonald's Corp.,stock
+MCHP,Microchip Technology,stock
+MCK,McKesson Corp.,stock
+MCO,Moody's Corp,stock
+MDLZ,Mondelez International,stock
+MDT,Medtronic plc,stock
+MET,MetLife Inc.,stock
+MGM,MGM Resorts International,stock
+MHK,Mohawk Industries,stock
+MKC,McCormick & Co.,stock
+MLM,Martin Marietta Materials,stock
+MMC,Marsh & McLennan,stock
+MMM,3M Company,stock
+MNST,Monster Beverage,stock
+MO,Altria Group Inc,stock
+MON,Monsanto Co.,stock
+MPC,Marathon Petroleum,stock
+MRK,Merck & Co.,stock
+MRO,Marathon Oil Corp.,stock
+MRVL,Marvell Technology Group Ltd.,stock
+MS,Morgan Stanley,stock
+MSFT,Microsoft Corp.,stock
+MSI,Motorola Solutions Inc.,stock
+MTB,M&T Bank Corp.,stock
+MTD,Mettler Toledo,stock
+MU,Micron Technology,stock
+MXIM,Maxim Integrated Products Inc.,stock
+NAVI,Navient,stock
+NCLH,Norwegian Cruise Line,stock
+NDAQ,"Nasdaq, Inc.",stock
+NEE,NextEra Energy,stock
+NET,Cloudflare Inc.,stock
+NFLX,Netflix Inc.,stock
+NFX,Newfield Exploration Co,stock
+NI,NiSource Inc.,stock
+NKE,Nike,stock
+NLSN,Nielsen Holdings,stock
+NOC,Northrop Grumman Corp.,stock
+NOV,National Oilwell Varco Inc.,stock
+NOW,ServiceNow Inc.,stock
+NRG,NRG Energy,stock
+NSC,Norfolk Southern Corp.,stock
+NTAP,NetApp,stock
+NTRS,Northern Trust Corp.,stock
+NUE,Nucor Corp.,stock
+NVDA,Nvidia Corporation,stock
+NWL,Newell Brands,stock
+NWS,News Corp. Class B,stock
+NWSA,News Corp. Class A,stock
+NXPI,NXP Semiconductors N.V.,stock
+O,Realty Income Corporation,stock
+OKE,ONEOK,stock
+OKTA,Okta Inc.,stock
+OMC,Omnicom Group,stock
+ORCL,Oracle Corp.,stock
+ORLY,O'Reilly Automotive,stock
+OXY,Occidental Petroleum,stock
+PANW,Palo Alto Networks Inc.,stock
+PAYC,Paycom Software Inc.,stock
+PAYX,Paychex Inc.,stock
+PBCT,People's United Financial,stock
+PCAR,PACCAR Inc.,stock
+PCG,PG&E Corp.,stock
+PDCO,Patterson Companies,stock
+PEG,Public Serv. Enterprise Inc.,stock
+PEP,PepsiCo Inc.,stock
+PFE,Pfizer Inc.,stock
+PFG,Principal Financial Group,stock
+PG,Procter & Gamble,stock
+PGR,Progressive Corp.,stock
+PH,Parker-Hannifin,stock
+PHM,Pulte Homes Inc.,stock
+PKG,Packaging Corporation of America,stock
+PKI,PerkinElmer,stock
+PLD,Prologis,stock
+PLTR,Palantir Technologies Inc.,stock
+PM,Philip Morris International,stock
+PNC,PNC Financial Services,stock
+PNR,Pentair Ltd.,stock
+PNW,Pinnacle West Capital,stock
+PPL,PPL Corp.,stock
+PRGO,Perrigo,stock
+PRU,Prudential Financial,stock
+PSA,Public Storage,stock
+PSX,Phillips 66,stock
+PVH,PVH Corp.,stock
+PWR,Quanta Services Inc.,stock
+PX,Praxair Inc.,stock
+PXD,Pioneer Natural Resources,stock
+PYPL,PayPal,stock
+QCOM,QUALCOMM Inc.,stock
+QRVO,Qorvo,stock
+RCL,Royal Caribbean Cruises Ltd,stock
+RE,Everest Re Group Ltd.,stock
+REG,Regency Centers Corporation,stock
+REGN,Regeneron,stock
+RF,Regions Financial Corp.,stock
+RHI,Robert Half International,stock
+RJF,Raymond James Financial Inc.,stock
+RL,Polo Ralph Lauren Corp.,stock
+RMD,ResMed,stock
+RNG,RingCentral Inc.,stock
+ROK,Rockwell Automation Inc.,stock
+ROP,Roper Technologies,stock
+ROST,Ross Stores,stock
+RRC,Range Resources Corp.,stock
+RSG,Republic Services Inc,stock
+RVLV,Revolve Group Inc. Class A Common Stock,stock
+SAP,SAP SE,stock
+SBAC,SBA Communications,stock
+SBUX,Starbucks Corp.,stock
+SCG,SCANA Corp,stock
+SCHW,Charles Schwab Corporation,stock
+SEE,Sealed Air,stock
+SHOP,Shopify Inc.,stock
+SHW,Sherwin-Williams,stock
+SIG,Signet Jewelers,stock
+SJM,JM Smucker,stock
+SLB,Schlumberger Ltd.,stock
+SLG,SL Green Realty,stock
+SNA,Snap-On Inc.,stock
+SNOW,Snowflake Inc.,stock
+SNPS,Synopsys Inc.,stock
+SO,Southern Co.,stock
+SPG,Simon Property Group Inc,stock
+SPGI,"S&P Global, Inc.",stock
+SPLK,Splunk Inc.,stock
+SPOT,Spotify Technology S.A. Ordinary Shares,stock
+SQ,Square Inc.,stock
+SRCL,Stericycle Inc,stock
+SRE,Sempra Energy,stock
+SSNC,SS&C Technologies Holdings Inc.,stock
+STM,STMicroelectronics N.V.,stock
+STNE,StoneCo Ltd.,stock
+STT,State Street Corp.,stock
+STX,Seagate Technology,stock
+STZ,Constellation Brands,stock
+SWK,Stanley Black & Decker,stock
+SWKS,Skyworks Solutions,stock
+SYF,Synchrony Financial,stock
+SYK,Stryker Corp.,stock
+SYY,Sysco Corp.,stock
+T,AT&T Inc,stock
+TAP,Molson Coors Brewing Company,stock
+TDG,TransDigm Group,stock
+TEAM,Atlassian Corporation Plc,stock
+TEL,TE Connectivity Ltd.,stock
+TER,Teradyne Inc.,stock
+TGT,Target Corp.,stock
+TJX,TJX Companies Inc.,stock
+TMO,Thermo Fisher Scientific,stock
+TPR,"Tapestry, Inc.",stock
+TRIP,TripAdvisor,stock
+TRMB,Trimble Inc.,stock
+TROW,T. Rowe Price Group,stock
+TRV,The Travelers Companies Inc.,stock
+TSCO,Tractor Supply Company,stock
+TSLA,Tesla Inc. Common Stock,stock
+TSM,Taiwan Semiconductor Manufacturing Company Limited,stock
+TSN,Tyson Foods,stock
+TTCF,Tattooed Chef Inc Class A Common Stock,stock
+TTD,The Trade Desk Inc. Class A Common Stock,stock
+TWX,Time Warner Inc.,stock
+TXN,Texas Instruments,stock
+TXT,Textron Inc.,stock
+TYL,Tyler Technologies Inc.,stock
+U,Unity Software Inc.,stock
+UA,Under Armour Class C,stock
+UAA,Under Armour Class A,stock
+UAL,United Continental Holdings,stock
+UBER,Uber Technologies Inc.,stock
+UDR,UDR Inc,stock
+UHS,"Universal Health Services, Inc.",stock
+UI,Ubiquiti Inc.,stock
+ULTA,Ulta Salon Cosmetics & Fragrance Inc,stock
+UMC,United Microelectronics Corporation,stock
+UNH,United Health Group Inc.,stock
+UNM,Unum Group,stock
+UNP,Union Pacific,stock
+UPS,United Parcel Service,stock
+UPWK,Upwork Inc. Common Stock,stock
+URI,"United Rentals, Inc.",stock
+USB,U.S. Bancorp,stock
+V,Visa Inc.,stock
+VFC,V.F. Corp.,stock
+VLO,Valero Energy,stock
+VMC,Vulcan Materials,stock
+VMW,VMware Inc.,stock
+VNO,Vornado Realty Trust,stock
+VRSK,Verisk Analytics,stock
+VRSN,Verisign Inc.,stock
+VRTX,Vertex Pharmaceuticals Inc,stock
+VTR,Ventas Inc,stock
+VZ,Verizon Communications,stock
+WAT,Waters Corporation,stock
+WBA,Walgreens Boots Alliance,stock
+WDAY,Workday Inc.,stock
+WDC,Western Digital,stock
+WEC,Wec Energy Group Inc,stock
+WFC,Wells Fargo,stock
+WHR,Whirlpool Corp.,stock
+WIT,Wipro Limited,stock
+WLTW,Willis Towers Watson,stock
+WM,Waste Management Inc.,stock
+WMB,Williams Cos.,stock
+WMT,Wal-Mart Stores,stock
+WORK,Slack Technologies Inc.,stock
+WRK,WestRock Company,stock
+WU,Western Union Co,stock
+WY,Weyerhaeuser Corp.,stock
+WYNN,Wynn Resorts Ltd,stock
+XEC,Cimarex Energy,stock
+XEL,Xcel Energy Inc,stock
+XL,XL Capital,stock
+XLNX,Xilinx Inc,stock
+XOM,Exxon Mobil Corp.,stock
+XRAY,Dentsply Sirona,stock
+XRX,Xerox Corp.,stock
+XYL,Xylem Inc.,stock
+YUM,Yum! Brands Inc,stock
+ZBH,Zimmer Biomet Holdings,stock
+ZBRA,Zebra Technologies Corporation,stock
+ZEN,Zendesk Inc.,stock
+ZI,ZoomInfo Technologies Inc.,stock
+ZION,Zions Bancorp,stock
+ZS,Zscaler Inc.,stock
+ZTS,Zoetis,stock
+ARKG,ARK Genomic Revolution ETF,etf
+ARKK,ARK Innovation ETF,etf
+ARKQ,ARK Autonomous Technology & Robotics ETF,etf
+ARKW,ARK Next Generation Internet ETF,etf
+PRNT,The 3D Printing ETF,etf
+SPY,SPDR S&P 500 ETF Trust,etf
+SPYG,SPDR Portfolio S&P 500 Growth ETF,etf
+VOO,Vanguard S&P 500 ETF,etf
+VTI,Vanguard Total Stock Market Index Fund ETF Shares,etf
+qqq,,etf

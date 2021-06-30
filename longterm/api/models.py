@@ -44,6 +44,8 @@ class User(AbstractBaseUser, PermissionsMixin):
 class Profile(models.Model):
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name='profile')
+    first_name = models.CharField(max_length=125, blank=True)
+    last_name = models.CharField(max_length=125, blank=True)
 
 
 class Asset(models.Model):
