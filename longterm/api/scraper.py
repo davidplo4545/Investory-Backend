@@ -48,7 +48,7 @@ class IsraeliPaperScraper:
         # check if paper exists in database
         try:
             paper = IsraelPaper.objects.get(paper_id=paper_id)
-            last_date = parse(data_points[0]['D_p'])
+            last_date = datetime.strptime(data_points[0]['D_p'], '%d/%m/%Y')
             last_price = float(data_points[0]['C_p'])
             # check if record exists already, create new one if it doesn't
             last_db_record = AssetRecord.objects.filter(
@@ -83,8 +83,10 @@ class IsraeliPaperScraper:
                 paper.last_price = float(data_points[0]['C_p'])
                 # creates list of AssetRecord objects
                 for point in data_points:
-                    record = AssetRecord(asset=paper, date=parse(
-                        point['D_p']), price=float(point['C_p']))
+                    date = point['D_p']
+                    date = datetime.strptime(date, '%d/%m/%Y')
+                    record = AssetRecord(
+                        asset=paper, date=date, price=float(point['C_p']))
                     records.append(record)
             return (paper, records)
 
@@ -218,7 +220,6 @@ class USPapersScraper:
             paper = USPaper.objects.get(symbol=symbol)
             last_date = list(records_json['Close'].keys())[-1]
             last_price = records_json['Close'][last_date]
-            print(parse(last_date))
             try:
                 # check if record with same date already exists
                 # and updates it if it does
@@ -319,7 +320,7 @@ class USPapersScraper:
 
 # scraper = IsraeliPaperScraper()
 # scraper.scrape_to_database()
-
+print(parse('06/07/2021').day)
 # print('done israeli')
 # scraper = USPapersScraper()
 # scraper.get_last_data_point('aal')

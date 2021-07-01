@@ -177,8 +177,13 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
         portfolio.save()
         return portfolio
 
+    def calculate_portfolio_records(self, portfolio):
+        starting_date = portfolio.started_at
+
 
 class PortfolioSerializer(serializers.ModelSerializer):
+    actions = PortfolioActionSerializer(many=True)
+
     class Meta:
         model = Portfolio
         fields = '__all__'

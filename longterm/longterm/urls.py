@@ -9,17 +9,17 @@ from api import views
 router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
 router.register(r'assets', views.AssetViewSet, basename='Asset')
-router.register(r'portfolios', views.PortfolioViewSet, basename='dsds')
+router.register(r'portfolios', views.PortfolioViewSet, basename='Portfolio')
 
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path('', include(router.urls)),
+    path('api/', include(router.urls)),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path('api/', include('rest_auth.urls')),  # login / logout / user
     path('api/register/', include('rest_auth.registration.urls')),
-    # path('script/isr', views.run_script_isr),
-    # path('script/us', views.run_script_us),
-    # path('script/crypto', views.run_script_crypto),
+    path('script/isr', views.run_script_isr),
+    path('script/us', views.run_script_us),
+    path('script/crypto', views.run_script_crypto),
 ]
