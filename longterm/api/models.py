@@ -1,4 +1,5 @@
 import datetime
+from datetime import timedelta
 from django.db import models
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
@@ -93,6 +94,62 @@ class Portfolio(models.Model):
     is_shared = models.BooleanField(default=True)
     created_at = models.DateField(auto_now_add=True)
     started_at = models.DateField(blank=True, null=True)
+
+    def calculate_portfolio_records(self):
+        # starting_date = self.started_at
+        # oldest items first
+        records = {}
+        dates_delta = (datetime.date.today() - self.started_at).days
+        portfolio_records = []
+        current_assets = {}
+        actions = self.actions.all()
+        # create list of all dates from the starting date
+        # till today's date
+        for i in range(dates_delta + 1):
+            curr_date = self.started_at + timedelta(i)
+            new_actions = actions.filter(completed_at=curr_date)
+            #  add new holding if a new Action is found
+            # { Asset : Quantity } Dictionary
+            if new_actions.count() > 0:
+                for action in new_actions:
+                    if action.asset in current_assets:
+                        is_buy = 1
+                        if action.type == 'SELL':
+                            is_buy = -1
+                        current_assets[action.asset] += is_buy * \
+                            action.quantity
+                    else:
+                        current_assets[action.asset] = action.quantity
+            for asset in current_assets:
+                # try to get the AssetRecord with the same date
+                # except if not found (Except not smart)
+                try:
+                    asset_record = AssetRecord.objects.get(asset=asset,
+                                                           date=curr_date)
+                except:
+                    # find the asset record in the curr_date - NOT EFFICIENT
+                    # Looking for range of dates because the date may
+                    # not be found the records (different trading days/holidays)
+                    asset_record = AssetRecord.objects.filter(
+                        asset=asset,
+                        date__range=[curr_date - timedelta(5), curr_date])
+                    if asset_record.count() > 0:
+                        asset_record = asset_record.last()
+                    else:
+                        return {}
+
+                if str(curr_date) in records:
+                    records[str(curr_date)] += asset_record.price * \
+                        current_assets[asset]
+                else:
+                    records[str(curr_date)] = asset_record.price * \
+                        current_assets[asset]
+
+            portfolio_records.append(PortfolioRecord(
+                portfolio=self, date=curr_date, price=records[str(curr_date)]))
+
+        print(current_assets)
+        return portfolio_records
 
 
 class PortfolioAction(models.Model):

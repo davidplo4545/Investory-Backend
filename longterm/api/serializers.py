@@ -1,6 +1,8 @@
+from django.core.exceptions import ValidationError
 from rest_framework import serializers
 from rest_framework import viewsets, status
 from rest_framework.response import Response
+from datetime import datetime, timedelta
 
 from api.models import ACTION_CHOICES, User, Profile, Asset, USPaper, IsraelPaper, Crypto, AssetRecord, \
     Portfolio, PortfolioAction, PortfolioRecord, ACTION_CHOICES
@@ -174,11 +176,67 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
         # set the earliest portfolio action date
         portfolio.started_at = portfolio.actions.order_by('completed_at')[
             0].completed_at
+        # portfolio.calculate_portfolio_records()
         portfolio.save()
         return portfolio
 
     def calculate_portfolio_records(self, portfolio):
-        starting_date = portfolio.started_at
+        records = {}
+        dates_delta = (datetime.date.today() - portfolio.started_at).days
+        portfolio_records = []
+        current_assets = {}
+        actions = portfolio.actions.all()
+        # Iterate through all dates between the portfolio
+        # started_at date (set as first record completion date)
+        # till today.
+        for i in range(dates_delta + 1):
+            curr_date = portfolio.started_at + timedelta(i)
+            new_actions = actions.filter(completed_at=curr_date)
+            #  add new holding if a new Action is found
+            # { Asset : Quantity } Dictionary
+            if new_actions.count() > 0:
+                for action in new_actions:
+                    if action.asset in current_assets:
+                        is_buy = 1
+                        if action.type == 'SELL':
+                            is_buy = -1
+                        current_assets[action.asset] += is_buy * \
+                            action.quantity
+                        if current_assets[action.asset] <= 0:
+                            raise ValidationError(
+                                {'message': f'{action.type} at {action.completed_at} cannot be completed. (Negative Quantity)'})
+                    else:
+                        current_assets[action.asset] = action.quantity
+            for asset in current_assets:
+                # try to get the AssetRecord with the same date
+                # except if not found (Except not smart)
+                try:
+                    asset_record = AssetRecord.objects.get(asset=asset,
+                                                           date=curr_date)
+                except:
+                    # find the asset record in the curr_date - NOT EFFICIENT
+                    # Looking for range of dates because the date may
+                    # not be found the records (different trading days/holidays)
+                    asset_record = AssetRecord.objects.filter(
+                        asset=asset,
+                        date__range=[curr_date - timedelta(5), curr_date])
+                    if asset_record.count() > 0:
+                        asset_record = asset_record.last()
+                    else:
+                        return {}
+
+                if str(curr_date) in records:
+                    records[str(curr_date)] += asset_record.price * \
+                        current_assets[asset]
+                else:
+                    records[str(curr_date)] = asset_record.price * \
+                        current_assets[asset]
+
+            portfolio_records.append(PortfolioRecord(
+                portfolio=portfolio, date=curr_date, price=records[str(curr_date)]))
+
+        print(current_assets)
+        return portfolio_records
 
 
 class PortfolioSerializer(serializers.ModelSerializer):

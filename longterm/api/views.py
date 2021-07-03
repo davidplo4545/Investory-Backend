@@ -7,7 +7,7 @@ from rest_framework.decorators import api_view, action
 from django.shortcuts import get_object_or_404
 from .models import User, Profile, Asset, IsraelPaper, USPaper, Crypto, AssetRecord,\
     Portfolio, PortfolioRecord, PortfolioAction
-from .serializers import AssetSerializer, PortfolioCreateSerializer, PortfolioSerializer, ProfileUpdateSerializer, UserSerializer
+from .serializers import AssetSerializer, PortfolioCreateSerializer, PortfolioRecordSerializer, PortfolioSerializer, ProfileUpdateSerializer, UserSerializer
 from .scraper import IsraeliPaperScraper, USPapersScraper
 
 
@@ -93,7 +93,7 @@ class PortfolioViewSet(viewsets.ModelViewSet):
         return Portfolio.objects.all()
 
     def get_serializer_class(self):
-        if self.action == "action":
+        if self.action == "create":
             return PortfolioCreateSerializer
         return PortfolioSerializer
 
@@ -101,6 +101,13 @@ class PortfolioViewSet(viewsets.ModelViewSet):
     def me(self, request):
         queryset = self.get_queryset().filter(profile=self.request.user.profile)
         serializer = self.get_serializer_class()(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def calculate(self, request, pk=None):
+        portfolio = Portfolio.objects.get(pk=pk)
+        records = portfolio.calculate_portfolio_records()
+        serializer = PortfolioRecordSerializer(records, many=True)
         return Response(serializer.data)
 
     def list(self, request):

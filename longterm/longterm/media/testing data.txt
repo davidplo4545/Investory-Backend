@@ -5,17 +5,31 @@ ttcf 1286
     "actions":[
          {
            "type":"BUY",
-           "asset":1286,
+           "asset":45,
            "quantity":20,
-           "share_price":22.5,
-           "completed_at": "2021-06-30"
+           "share_price":41,
+           "completed_at": "2018-02-01"
          },
         {
            "type":"BUY",
-           "asset":1286,
+           "asset":45,
            "quantity":30,
-           "share_price":25,
-           "completed_at": "2021-05-30"
+           "share_price":40,
+           "completed_at": "2019-02-01"
+         },
+        {
+           "type":"SELL",
+           "asset":45,
+           "quantity":10,
+           "share_price":45.5,
+           "completed_at": "2019-03-20"
+         },
+        {
+           "type":"BUY",
+           "asset":45,
+           "quantity":10,
+           "share_price":50,
+           "completed_at": "2019-07-15"
          }
     ]
 }
