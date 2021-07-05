@@ -6,7 +6,7 @@ from datetime import timedelta
 import datetime
 
 from api.models import ACTION_CHOICES, User, Profile, Asset, USPaper, IsraelPaper, Crypto, AssetRecord, \
-    Portfolio, PortfolioAction, PortfolioRecord, ACTION_CHOICES
+    Portfolio, PortfolioAction, PortfolioRecord, ACTION_CHOICES, Holding
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -147,12 +147,20 @@ class PortfolioRecordSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class HoldingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Holding
+        fields = '__all__'
+
+
 class PortfolioCreateSerializer(serializers.ModelSerializer):
     actions = PortfolioActionSerializer(many=True)
+    records = PortfolioRecordSerializer(many=True, read_only=True)
+    holdings = HoldingSerializer(many=True, read_only=True)
 
     class Meta:
         model = Portfolio
-        fields = ['name', 'actions']
+        fields = ['name', 'actions', 'holdings', 'records']
 
     def create(self, validated_data):
         portfolio = Portfolio(name=validated_data['name'])
@@ -176,6 +184,7 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         if 'actions' in validated_data:
             records_to_delete = instance.records.all()
+            holdings_to_delete = instance.holdings.all()
             actions_pks_to_delete = list(instance.actions.all().values_list(
                 'pk', flat=True))
             self.validate_portfolio_actions(
@@ -194,13 +203,37 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                 # delete old records and actions if everything is valid
                 PortfolioAction.objects.filter(
                     pk__in=actions_pks_to_delete).delete()
+                holdings_to_delete.delete()
                 records_to_delete.delete()
+                self.save_portfolio_holdings(instance)
                 PortfolioRecord.objects.bulk_create(new_records)
 
         if 'name' in validated_data:
             instance.name = validated_data['name']
         instance.save()
         return instance
+
+    def save_portfolio_holdings(self, portfolio):
+        actions = portfolio.actions.all()
+        holdings = {}
+        for action in actions:
+            is_buy = 1 if action.type == "BUY" else -1
+            if action.asset in holdings:
+                holding = holdings[action.asset]
+                holding.quantity += action.quantity * is_buy
+                holding.total_value += action.total_value * is_buy
+                holding.total_cost += action.total_cost * is_buy
+                holding.cost_basis = holding.total_cost / holding.quantity
+            else:
+                holding = Holding()
+                holding.portfolio = portfolio
+                holding.asset = action.asset
+                holding.quantity = action.quantity
+                holding.total_value = action.total_value
+                holding.total_cost = action.total_cost
+                holding.cost_basis = holding.total_cost / holding.quantity
+                holdings[action.asset] = holding
+        Holding.objects.bulk_create(list(holdings.values()))
 
     def validate_portfolio_actions(self, portfolio, actions):
         valid_serializers = []
@@ -212,7 +245,7 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                 valid_serializers.append(serializer)
             else:
                 raise serializers.ValidationError(
-                    {'error': 'actions are not valid'})
+                    {'error': 'Actions are not valid'})
 
         # create the action models through the serializers only
         # if all of them are valid
@@ -222,7 +255,7 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                 serializer.save()
         else:
             raise serializers.ValidationError(
-                {'error': 'actions are not valid'})
+                {'error': 'Actions are not valid'})
 
     def calculate_portfolio_records(self, portfolio, actions, is_create=True, old_actions=[]):
         records = {}
@@ -292,6 +325,7 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
 class PortfolioSerializer(serializers.ModelSerializer):
     actions = PortfolioActionSerializer(many=True)
     records = PortfolioRecordSerializer(many=True, read_only=True)
+    holdings = HoldingSerializer(many=True, read_only=True)
 
     class Meta:
         model = Portfolio

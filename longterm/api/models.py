@@ -108,11 +108,21 @@ class PortfolioAction(models.Model):
         Asset, on_delete=models.CASCADE, related_name='actions')
     quantity = models.FloatField(default=0)
     share_price = models.FloatField(default=0)
+    total_cost = models.FloatField(blank=True, default=0, editable=False)
     total_value = models.FloatField(blank=True, default=0, editable=False)
     completed_at = models.DateField(default=datetime.date.today)
 
     def save(self, *args, **kwargs):
-        self.total_value = self.share_price * self.quantity
+        self.total_cost = self.share_price * self.quantity
+        asset_id = self.asset.id
+        try:
+            asset = USPaper.objects.get(id=asset_id)
+        except:
+            try:
+                asset = IsraelPaper.objects.get(id=asset_id)
+            except:
+                asset = Crypto.objects.get(id=asset_id)
+        self.total_value = asset.last_price * self.quantity
         super(PortfolioAction, self).save(*args, **kwargs)
 
     class Meta:
@@ -127,3 +137,14 @@ class PortfolioRecord(models.Model):
 
     class Meta:
         ordering = ('date',)
+
+
+class Holding(models.Model):
+    portfolio = models.ForeignKey(
+        Portfolio, on_delete=models.CASCADE, related_name='holdings')
+    asset = models.ForeignKey(
+        Asset, on_delete=models.CASCADE, related_name='holdings')
+    quantity = models.FloatField()
+    cost_basis = models.FloatField(blank=True)
+    total_cost = models.FloatField(blank=True, default=0)
+    total_value = models.FloatField(blank=True, default=0)
