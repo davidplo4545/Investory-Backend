@@ -2,7 +2,8 @@ from django.core.exceptions import ValidationError
 from rest_framework import serializers
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from datetime import datetime, timedelta
+from datetime import timedelta
+import datetime
 
 from api.models import ACTION_CHOICES, User, Profile, Asset, USPaper, IsraelPaper, Crypto, AssetRecord, \
     Portfolio, PortfolioAction, PortfolioRecord, ACTION_CHOICES
@@ -112,13 +113,15 @@ class CryptoSerializer(serializers.ModelSerializer):
 class PortfolioActionSerializer(serializers.Serializer):
     asset = serializers.PrimaryKeyRelatedField(
         queryset=Asset.objects.select_subclasses())
+    id = serializers.ReadOnlyField(read_only=True)
     type = serializers.ChoiceField(choices=ACTION_CHOICES)
     quantity = serializers.FloatField()
     share_price = serializers.FloatField()
     completed_at = serializers.DateField()
 
     class Meta:
-        fields = ['asset', 'type', 'quantity', 'share_price', 'completed_at']
+        fields = ['id', 'asset', 'type', 'quantity',
+                  'share_price', 'completed_at']
 
     def create(self, validated_data):
         action = PortfolioAction()
@@ -155,6 +158,51 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
         portfolio = Portfolio(name=validated_data['name'])
         portfolio.profile = self.context['profile']
         actions = validated_data['actions']
+
+        portfolio.save()
+        self.validate_portfolio_actions(portfolio, actions)
+
+        # set the earliest portfolio action date
+        portfolio.started_at = portfolio.actions.order_by(
+            'completed_at').first().completed_at
+
+        records = self.calculate_portfolio_records(
+            portfolio, portfolio.actions.all(), True)
+
+        PortfolioRecord.objects.bulk_create(records)
+        portfolio.save()
+        return portfolio
+
+    def update(self, instance, validated_data):
+        if 'actions' in validated_data:
+            records_to_delete = instance.records.all()
+            actions_pks_to_delete = list(instance.actions.all().values_list(
+                'pk', flat=True))
+            self.validate_portfolio_actions(
+                instance, validated_data['actions'])
+
+            new_actions = instance.actions.exclude(
+                pk__in=actions_pks_to_delete)
+
+            # set the earliest portfolio action date
+            instance.started_at = instance.actions.order_by('completed_at')[
+                0].completed_at
+
+            new_records = self.calculate_portfolio_records(
+                instance, new_actions, False)
+            if new_records:
+                # delete old records and actions if everything is valid
+                PortfolioAction.objects.filter(
+                    pk__in=actions_pks_to_delete).delete()
+                records_to_delete.delete()
+                PortfolioRecord.objects.bulk_create(new_records)
+
+        if 'name' in validated_data:
+            instance.name = validated_data['name']
+        instance.save()
+        return instance
+
+    def validate_portfolio_actions(self, portfolio, actions):
         valid_serializers = []
         for action in actions:
             action['asset'] = action['asset'].pk
@@ -168,24 +216,19 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
 
         # create the action models through the serializers only
         # if all of them are valid
+        actions = []
         if valid_serializers:
-            portfolio.save()
             for serializer in valid_serializers:
                 serializer.save()
+        else:
+            raise serializers.ValidationError(
+                {'error': 'actions are not valid'})
 
-        # set the earliest portfolio action date
-        portfolio.started_at = portfolio.actions.order_by('completed_at')[
-            0].completed_at
-        # portfolio.calculate_portfolio_records()
-        portfolio.save()
-        return portfolio
-
-    def calculate_portfolio_records(self, portfolio):
+    def calculate_portfolio_records(self, portfolio, actions, is_create=True, old_actions=[]):
         records = {}
         dates_delta = (datetime.date.today() - portfolio.started_at).days
         portfolio_records = []
         current_assets = {}
-        actions = portfolio.actions.all()
         # Iterate through all dates between the portfolio
         # started_at date (set as first record completion date)
         # till today.
@@ -203,13 +246,20 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                         current_assets[action.asset] += is_buy * \
                             action.quantity
                         if current_assets[action.asset] <= 0:
-                            raise ValidationError(
+                            # negative quantity of stock (portfolio cannot exist)
+                            if is_create:
+                                portfolio.delete()
+                            else:
+                                actions.delete()
+                            raise serializers.ValidationError(
                                 {'message': f'{action.type} at {action.completed_at} cannot be completed. (Negative Quantity)'})
                     else:
                         current_assets[action.asset] = action.quantity
+            # iterate through every asset and get its price at the
+            # curr_date
             for asset in current_assets:
                 # try to get the AssetRecord with the same date
-                # except if not found (Except not smart)
+                # except if not found
                 try:
                     asset_record = AssetRecord.objects.get(asset=asset,
                                                            date=curr_date)
@@ -223,24 +273,25 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                     if asset_record.count() > 0:
                         asset_record = asset_record.last()
                     else:
-                        return {}
+                        raise serializers.ValidationError(
+                            {'message': f'{asset.symbol} price not found at {curr_date}'})
 
+                # add the asset_price * quantity to the total value
+                # of the portfolio at the curr_date
                 if str(curr_date) in records:
                     records[str(curr_date)] += asset_record.price * \
                         current_assets[asset]
                 else:
                     records[str(curr_date)] = asset_record.price * \
                         current_assets[asset]
-
-            portfolio_records.append(PortfolioRecord(
-                portfolio=portfolio, date=curr_date, price=records[str(curr_date)]))
-
-        print(current_assets)
+                portfolio_records.append(PortfolioRecord(
+                    portfolio=portfolio, date=curr_date, price=records[str(curr_date)]))
         return portfolio_records
 
 
 class PortfolioSerializer(serializers.ModelSerializer):
     actions = PortfolioActionSerializer(many=True)
+    records = PortfolioRecordSerializer(many=True, read_only=True)
 
     class Meta:
         model = Portfolio

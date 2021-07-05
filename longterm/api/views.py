@@ -23,7 +23,6 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['patch'])
     def update_profile(self, request):
         profile = Profile.objects.get(user__id=self.request.user.id)
-        print(profile)
         serializer = ProfileUpdateSerializer(
             profile, data=request.data, partial=True)
         serializer.is_valid()
@@ -93,7 +92,7 @@ class PortfolioViewSet(viewsets.ModelViewSet):
         return Portfolio.objects.all()
 
     def get_serializer_class(self):
-        if self.action == "create":
+        if self.action in ["create", "partial_update"]:
             return PortfolioCreateSerializer
         return PortfolioSerializer
 
@@ -125,6 +124,14 @@ class PortfolioViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save()
+
+    def partial_update(self, request, pk=None):
+        instance = Portfolio.objects.get(pk=pk)
+        serializer = self.get_serializer_class()(
+            instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 @api_view(['GET', 'POST'])
