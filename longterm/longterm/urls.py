@@ -7,7 +7,7 @@ from api import views
 
 # Routers provide a way of automatically determining the URL conf.
 router = routers.DefaultRouter()
-router.register(r'users', views.UserViewSet)
+router.register(r'users', views.UserViewSet, basename='Username')
 router.register(r'assets', views.AssetViewSet, basename='Asset')
 router.register(r'portfolios', views.PortfolioViewSet, basename='Portfolio')
 router.register(r'portfolio-comparisons',

@@ -1,7 +1,7 @@
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
 from rest_framework import viewsets, status
-from rest_framework.response import Response
+from rest_auth.registration.serializers import RegisterSerializer
 from datetime import timedelta
 import datetime
 
@@ -34,20 +34,60 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
         return instance
 
 
+class RegisterSerializer(RegisterSerializer):
+    first_name = serializers.CharField(max_length=20)
+    last_name = serializers.CharField(max_length=20)
+
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'password1',
+                  'first_name', 'last_name']
+
+    def validate_first_name(self, first_name):
+        return first_name
+
+    def validate_last_name(self, last_name):
+        return last_name
+
+    def get_cleaned_data(self):
+        return {
+            'password1': self.validated_data.get('password1'),
+            'email': self.validated_data.get('email'),
+            'first_name': self.validated_data.get('first_name'),
+            'last_name': self.validated_data.get('last_name'),
+        }
+
+    def save(self, request):
+        res = super(RegisterSerializer, self).save(request)
+        cleaned_data = self.get_cleaned_data()
+        profile = Profile(id=res.id,
+                          user=res, first_name=cleaned_data['first_name'],
+                          last_name=cleaned_data['last_name'],)
+        profile.save()
+        # print(res, profile)
+        return res
+
+    # def create(self, validated_data):
+    #     print('herhehehe')
+    #     user = User(email=validated_data['email'])
+    #     print(validated_data['password'])
+    #     user.set_password(validated_data['password'])
+    #     print('hgwegwegew2')
+    #     user.save(self.context['request'])
+    #     first_name = validated_data['first_name']
+    #     last_name = validated_data['last_name']
+    #     profile = Profile.objects.create(
+    #         user=user, first_name=first_name, last_name=last_name)
+    #     profile.save()
+    #     return user
+
+
 class UserSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer()
 
     class Meta:
         model = User
         fields = ['id', 'email', 'is_superuser', 'profile']
-
-    def create(self, validated_data):
-        user = User(email=validated_data['email'])
-        user.set_password(validated_data['password'])
-        user.save()
-        profile = Profile(user=user)
-        profile.save()
-        return user
 
 
 class AssetSerializer(serializers.ModelSerializer):
@@ -113,14 +153,13 @@ class CryptoSerializer(serializers.ModelSerializer):
 class PortfolioActionSerializer(serializers.Serializer):
     asset = serializers.PrimaryKeyRelatedField(
         queryset=Asset.objects.select_subclasses())
-    id = serializers.ReadOnlyField(read_only=True)
     type = serializers.ChoiceField(choices=ACTION_CHOICES)
     quantity = serializers.FloatField()
     share_price = serializers.FloatField()
     completed_at = serializers.DateField()
 
     class Meta:
-        fields = ['id', 'asset', 'type', 'quantity',
+        fields = ['asset', 'type', 'quantity',
                   'share_price', 'completed_at']
 
     def create(self, validated_data):
@@ -131,7 +170,6 @@ class PortfolioActionSerializer(serializers.Serializer):
         except:
             raise serializers.ValidationError(
                 {'error': 'Actions are not valid'})
-            # return Response({"status": "Profile has been updated."}, status=status.HTTP_200_OK)
         action.type = validated_data['type']
         action.quantity = validated_data['quantity']
         action.share_price = validated_data['share_price']
@@ -144,13 +182,14 @@ class PortfolioActionSerializer(serializers.Serializer):
 class PortfolioRecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = PortfolioRecord
-        fields = '__all__'
+        fields = ['date', 'price']
 
 
 class HoldingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Holding
-        fields = '__all__'
+        fields = ['quantity', 'cost_basis',
+                  'total_cost', 'total_value', "asset"]
 
 
 class PortfolioCreateSerializer(serializers.ModelSerializer):
@@ -160,7 +199,7 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Portfolio
-        fields = ['name', 'actions', 'holdings', 'records']
+        fields = ['name', 'actions', 'holdings', 'records', 'is_shared']
 
     def create(self, validated_data):
         portfolio = Portfolio(name=validated_data['name'])
@@ -211,6 +250,8 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
 
         if 'name' in validated_data:
             instance.name = validated_data['name']
+        if 'is_shared' in validated_data:
+            instance.is_shared = validated_data['is_shared']
         instance.save()
         return instance
 
@@ -359,7 +400,6 @@ class PortfolioComparisonCreateSerializer(serializers.Serializer):
     def create(self, validated_data):
         portfolio = self.context['portfolio']
         asset = validated_data['asset']
-        print(validated_data)
         portfolio_actions = portfolio.actions.all()
         asset_actions = []
         # Generate a list of actions for a portfolio with
@@ -392,18 +432,17 @@ class PortfolioComparisonCreateSerializer(serializers.Serializer):
 
         name = f'{portfolio.name} vs {asset.symbol}'
         serializer_data = {"name": name, "actions": asset_actions}
-        print(serializer_data)
         serializer = PortfolioCreateSerializer(data=serializer_data, context={
             'profile': None})
         serializer.is_valid(raise_exception=True)
         asset_portfolio = serializer.save()
         comparison = PortfolioComparison(asset_portfolio=asset_portfolio,
-                                         portfolio=portfolio, asset=asset)
+                                         portfolio=portfolio, asset=asset, profile=self.context['profile'])
         comparison.save()
         return comparison
 
 
-class PortfolioComparisonSerializer(serializers.ModelSerializer):
+class PortfolioComparisonRetrieveSerializer(serializers.ModelSerializer):
     asset_portfolio_holdings = serializers.SerializerMethodField(
         'get_asset_portfolio_holdings')
     asset_portfolio_records = serializers.SerializerMethodField(
@@ -424,3 +463,9 @@ class PortfolioComparisonSerializer(serializers.ModelSerializer):
         holdings = Holding.objects.filter(portfolio=asset_portfolio)
         serializer = HoldingSerializer(instance=holdings, many=True)
         return serializer.data
+
+
+class PortfolioComparisonListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PortfolioComparison
+        fields = '__all__'

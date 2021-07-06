@@ -130,8 +130,12 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 AUTH_USER_MODEL = 'api.User'
+REST_AUTH_REGISTER_SERIALIZERS = {
+    'REGISTER_SERIALIZER': 'api.serializers.RegisterSerializer',
+}
+
 REST_AUTH_SERIALIZERS = {
-    'USER_DETAILS_SERIALIZER': 'api.serializers.UserSerializer',
+    'USER_DETAILS_SERIALIZER': 'api.serializers.UserSerializer'
 }
 
 REST_FRAMEWORK = {
@@ -152,5 +156,10 @@ ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
+
+# E-mail address is automatically confirmed by a GET request
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True
+# Allow logins with an unverified e-mail address
+ACCOUNT_EMAIL_VERIFICATION = 'none'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
