@@ -90,7 +90,7 @@ class Portfolio(models.Model):
     name = models.CharField(max_length=200, unique=True)
     # link_uid
     profile = models.ForeignKey(
-        Profile, on_delete=models.CASCADE, related_name='portfolio')
+        Profile, on_delete=models.CASCADE, related_name='portfolio', null=True)
     is_shared = models.BooleanField(default=True)
     created_at = models.DateField(auto_now_add=True)
     started_at = models.DateField(blank=True, null=True)
@@ -148,3 +148,12 @@ class Holding(models.Model):
     cost_basis = models.FloatField(blank=True)
     total_cost = models.FloatField(blank=True, default=0)
     total_value = models.FloatField(blank=True, default=0)
+
+
+class PortfolioComparison(models.Model):
+    portfolio = models.ForeignKey(
+        Portfolio, on_delete=models.CASCADE, related_name='asset_comparisons')
+    asset = models.ForeignKey(
+        Asset, on_delete=models.CASCADE, related_name='comparisons')
+    asset_portfolio = models.ForeignKey(
+        Portfolio, on_delete=models.CASCADE, related_name='portfolio_comparisons', null=True)

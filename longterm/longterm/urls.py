@@ -10,6 +10,8 @@ router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
 router.register(r'assets', views.AssetViewSet, basename='Asset')
 router.register(r'portfolios', views.PortfolioViewSet, basename='Portfolio')
+router.register(r'portfolio-comparisons',
+                views.PortfolioComparisonViewSet, basename='Comparisons')
 
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.

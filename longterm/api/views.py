@@ -6,8 +6,11 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, action
 from django.shortcuts import get_object_or_404
 from .models import User, Profile, Asset, IsraelPaper, USPaper, Crypto, AssetRecord,\
-    Portfolio, PortfolioRecord, PortfolioAction
-from .serializers import AssetSerializer, PortfolioCreateSerializer, PortfolioRecordSerializer, PortfolioSerializer, ProfileUpdateSerializer, UserSerializer
+    Portfolio, PortfolioRecord, PortfolioAction, PortfolioComparison
+from .serializers import AssetSerializer, PortfolioComparisonSerializer,\
+    PortfolioCreateSerializer, PortfolioRecordSerializer,\
+    PortfolioListSerializer, PortfolioRetrieveSerializer, ProfileUpdateSerializer, UserSerializer,\
+    PortfolioComparisonCreateSerializer
 from .scraper import IsraeliPaperScraper, USPapersScraper
 
 
@@ -44,7 +47,7 @@ class AssetViewSet(viewsets.ViewSet):
                 if symbol:
                     symbol = symbol.upper()
                     try:
-                        return IsraelPaper.objects.filter(paper_id=symbol)
+                        return IsraelPaper.objects.get(paper_id=symbol)
                     except:
                         return Response({'error': 'No Israeli papers were found.'})
                 else:
@@ -53,7 +56,7 @@ class AssetViewSet(viewsets.ViewSet):
                 if symbol:
                     symbol = symbol.upper()
                     try:
-                        return USPaper.objects.filter(symbol=symbol)
+                        return USPaper.objects.get(symbol=symbol)
                     except:
                         return Response({'error': 'No US papers were found.'})
                 else:
@@ -62,7 +65,7 @@ class AssetViewSet(viewsets.ViewSet):
                 if symbol:
                     symbol = symbol.upper()
                     try:
-                        return Crypto.objects.filter(symbol=symbol)
+                        return Crypto.objects.get(symbol=symbol)
                     except:
                         return Response({'error': 'No cryptos were found.'})
                 else:
@@ -94,19 +97,16 @@ class PortfolioViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ["create", "partial_update"]:
             return PortfolioCreateSerializer
-        return PortfolioSerializer
+        elif self.action == 'list':
+            return PortfolioListSerializer
+        elif self.action == 'compare':
+            return PortfolioComparisonSerializer
+        return PortfolioRetrieveSerializer
 
     @action(detail=False, methods=['get'])
     def me(self, request):
         queryset = self.get_queryset().filter(profile=self.request.user.profile)
         serializer = self.get_serializer_class()(queryset, many=True)
-        return Response(serializer.data)
-
-    @action(detail=True, methods=['get'])
-    def calculate(self, request, pk=None):
-        portfolio = Portfolio.objects.get(pk=pk)
-        records = portfolio.calculate_portfolio_records()
-        serializer = PortfolioRecordSerializer(records, many=True)
         return Response(serializer.data)
 
     def list(self, request):
@@ -132,6 +132,35 @@ class PortfolioViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def compare(self, request, pk=None):
+        portfolio = self.get_object()
+        serializer = PortfolioComparisonCreateSerializer(
+            data=request.data, context={'portfolio': portfolio})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
+class PortfolioComparisonViewSet(viewsets.ModelViewSet):
+    serializer_class = PortfolioComparisonSerializer
+
+    def get_queryset(self):
+        return PortfolioComparison.objects.all()
+
+    def list(self, request):
+        queryset = self.get_queryset()
+        serializer = self.serializer_class(
+            queryset, many=True, context={'count': 1})
+
+        return Response(serializer.data)
+
+    # def retrieve(self, request, pk=None):
+    #     queryset = Asset.objects.select_subclasses()
+    #     paper = get_object_or_404(queryset, pk=pk)
+    #     serializer = self.serializer_class(paper, context={'count': 1})
+    #     return Response(serializer.data)
 
 
 @api_view(['GET', 'POST'])

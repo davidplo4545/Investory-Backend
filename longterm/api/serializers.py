@@ -6,7 +6,7 @@ from datetime import timedelta
 import datetime
 
 from api.models import ACTION_CHOICES, User, Profile, Asset, USPaper, IsraelPaper, Crypto, AssetRecord, \
-    Portfolio, PortfolioAction, PortfolioRecord, ACTION_CHOICES, Holding
+    Portfolio, PortfolioAction, PortfolioRecord, ACTION_CHOICES, Holding, PortfolioComparison
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -179,6 +179,7 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
 
         PortfolioRecord.objects.bulk_create(records)
         portfolio.save()
+        self.save_portfolio_holdings(portfolio)
         return portfolio
 
     def update(self, instance, validated_data):
@@ -322,11 +323,104 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
         return portfolio_records
 
 
-class PortfolioSerializer(serializers.ModelSerializer):
-    actions = PortfolioActionSerializer(many=True)
-    records = PortfolioRecordSerializer(many=True, read_only=True)
+class PortfolioRetrieveSerializer(serializers.ModelSerializer):
+    actions = PortfolioActionSerializer(many=True, read_only=True)
+    records = serializers.SerializerMethodField('get_records')
     holdings = HoldingSerializer(many=True, read_only=True)
 
     class Meta:
         model = Portfolio
         fields = '__all__'
+
+    def get_records(self, portfolio):
+        # show only Monday-Friday Portfolio Records
+        queryset = portfolio.records.filter(date__week_day__in=[2, 3, 4, 5, 6])
+        serializer = PortfolioRecordSerializer(instance=queryset, many=True)
+        return serializer.data
+
+
+class PortfolioListSerializer(serializers.ModelSerializer):
+    actions = PortfolioActionSerializer(many=True, read_only=True)
+    holdings = HoldingSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Portfolio
+        fields = '__all__'
+
+
+class PortfolioComparisonCreateSerializer(serializers.Serializer):
+
+    asset = serializers.PrimaryKeyRelatedField(
+        queryset=Asset.objects.select_subclasses())
+
+    class Meta:
+        fields = ['portfolio', 'asset']
+
+    def create(self, validated_data):
+        portfolio = self.context['portfolio']
+        asset = validated_data['asset']
+        print(validated_data)
+        portfolio_actions = portfolio.actions.all()
+        asset_actions = []
+        # Generate a list of actions for a portfolio with
+        # only one Asset that's being passed to the serializer
+        for action in portfolio_actions:
+            try:
+                asset_record_at_action_date = AssetRecord.objects.get(asset=asset,
+                                                                      date=action.date)
+            except:
+                # find the asset record in the curr_date - NOT EFFICIENT
+                # Looking for range of dates because the date may
+                # not be found the records (different trading days/holidays)
+                asset_record_at_action_date = AssetRecord.objects.filter(
+                    asset=asset,
+                    date__range=[action.completed_at - timedelta(5), action.completed_at])
+                if asset_record_at_action_date.count() > 0:
+                    asset_record_at_action_date = asset_record_at_action_date.last()
+                else:
+                    raise serializers.ValidationError(
+                        {'message': f'{asset.symbol} price not found at {action.completed_at}'})
+
+            asset_price = asset_record_at_action_date.price
+            quantity = action.total_cost / asset_price
+            asset_action = {"type": action.type,
+                            "asset": asset.id,
+                            "quantity": quantity,
+                            "share_price": asset_price,
+                            "completed_at": action.completed_at}
+            asset_actions.append(asset_action)
+
+        name = f'{portfolio.name} vs {asset.symbol}'
+        serializer_data = {"name": name, "actions": asset_actions}
+        print(serializer_data)
+        serializer = PortfolioCreateSerializer(data=serializer_data, context={
+            'profile': None})
+        serializer.is_valid(raise_exception=True)
+        asset_portfolio = serializer.save()
+        comparison = PortfolioComparison(asset_portfolio=asset_portfolio,
+                                         portfolio=portfolio, asset=asset)
+        comparison.save()
+        return comparison
+
+
+class PortfolioComparisonSerializer(serializers.ModelSerializer):
+    asset_portfolio_holdings = serializers.SerializerMethodField(
+        'get_asset_portfolio_holdings')
+    asset_portfolio_records = serializers.SerializerMethodField(
+        'get_asset_portfolio_records')
+
+    class Meta:
+        model = PortfolioComparison
+        fields = '__all__'
+
+    def get_asset_portfolio_records(self, obj):
+        asset_portfolio = obj.asset_portfolio
+        records = PortfolioRecord.objects.filter(portfolio=asset_portfolio)
+        serializer = PortfolioRecordSerializer(instance=records, many=True)
+        return serializer.data
+
+    def get_asset_portfolio_holdings(self, obj):
+        asset_portfolio = obj.asset_portfolio
+        holdings = Holding.objects.filter(portfolio=asset_portfolio)
+        serializer = HoldingSerializer(instance=holdings, many=True)
+        return serializer.data
