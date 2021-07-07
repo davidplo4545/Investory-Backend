@@ -53,8 +53,8 @@ class RegisterSerializer(RegisterSerializer):
         return {
             'password1': self.validated_data.get('password1'),
             'email': self.validated_data.get('email'),
-            'first_name': self.validated_data.get('first_name'),
-            'last_name': self.validated_data.get('last_name'),
+            'first_name': self.validated_data.get('first_name', ''),
+            'last_name': self.validated_data.get('last_name', ''),
         }
 
     def save(self, request):
@@ -64,22 +64,7 @@ class RegisterSerializer(RegisterSerializer):
                           user=res, first_name=cleaned_data['first_name'],
                           last_name=cleaned_data['last_name'],)
         profile.save()
-        # print(res, profile)
         return res
-
-    # def create(self, validated_data):
-    #     print('herhehehe')
-    #     user = User(email=validated_data['email'])
-    #     print(validated_data['password'])
-    #     user.set_password(validated_data['password'])
-    #     print('hgwegwegew2')
-    #     user.save(self.context['request'])
-    #     first_name = validated_data['first_name']
-    #     last_name = validated_data['last_name']
-    #     profile = Profile.objects.create(
-    #         user=user, first_name=first_name, last_name=last_name)
-    #     profile.save()
-    #     return user
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -201,6 +186,19 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
         model = Portfolio
         fields = ['name', 'actions', 'holdings', 'records', 'is_shared']
 
+    def validate(self, data):
+        """
+        Check that user doesn't have portfolio with same name already.
+        """
+        profile = self.context['profile']
+        name = data['name']
+        portfolios = Portfolio.objects.filter(profile=profile, name=name)
+        if portfolios.count() > 0:
+            raise serializers.ValidationError(
+                {"Validation error": "Portoflio with this name already exists."})
+        else:
+            return data
+
     def create(self, validated_data):
         portfolio = Portfolio(name=validated_data['name'])
         portfolio.profile = self.context['profile']
@@ -217,8 +215,8 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
             portfolio, portfolio.actions.all(), True)
 
         PortfolioRecord.objects.bulk_create(records)
-        portfolio.save()
         self.save_portfolio_holdings(portfolio)
+        portfolio.save()
         return portfolio
 
     def update(self, instance, validated_data):
@@ -259,22 +257,32 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
         actions = portfolio.actions.all()
         holdings = {}
         for action in actions:
-            is_buy = 1 if action.type == "BUY" else -1
             if action.asset in holdings:
+                is_buy = 1 if action.type == "BUY" else -1
                 holding = holdings[action.asset]
-                holding.quantity += action.quantity * is_buy
-                holding.total_value += action.total_value * is_buy
-                holding.total_cost += action.total_cost * is_buy
-                holding.cost_basis = holding.total_cost / holding.quantity
+                if is_buy == 1:
+                    holding.quantity += action.quantity * is_buy
+                    holding.total_cost += action.total_cost * is_buy
+                    holding.cost_basis = holding.total_cost / holding.quantity
+                else:
+                    portfolio.realized_gain += action.quantity * (action.share_price
+                                                                  - holding.cost_basis)
+                    if holding.quantity - action.quantity <= 0:
+                        holdings.pop(action.asset)
+                    else:
+                        holding.quantity += action.quantity * is_buy
+                        holding.total_cost -= holding.cost_basis * action.quantity
+
             else:
                 holding = Holding()
                 holding.portfolio = portfolio
                 holding.asset = action.asset
                 holding.quantity = action.quantity
-                holding.total_value = action.total_value
+                # holding.total_value = action.total_value
                 holding.total_cost = action.total_cost
                 holding.cost_basis = holding.total_cost / holding.quantity
                 holdings[action.asset] = holding
+
         Holding.objects.bulk_create(list(holdings.values()))
 
     def validate_portfolio_actions(self, portfolio, actions):
@@ -314,13 +322,14 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
             # { Asset : Quantity } Dictionary
             if new_actions.count() > 0:
                 for action in new_actions:
+                    is_buy = 1
+                    if action.type == 'SELL':
+                        is_buy = -1
+                        # calculate gain/loss on SELL order
                     if action.asset in current_assets:
-                        is_buy = 1
-                        if action.type == 'SELL':
-                            is_buy = -1
                         current_assets[action.asset] += is_buy * \
                             action.quantity
-                        if current_assets[action.asset] <= 0:
+                        if current_assets[action.asset] < 0:
                             # negative quantity of stock (portfolio cannot exist)
                             if is_create:
                                 portfolio.delete()
@@ -329,7 +338,14 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                             raise serializers.ValidationError(
                                 {'message': f'{action.type} at {action.completed_at} cannot be completed. (Negative Quantity)'})
                     else:
-                        current_assets[action.asset] = action.quantity
+                        current_assets[action.asset] = is_buy * action.quantity
+                        if current_assets[action.asset] < 0:
+                            if is_create:
+                                portfolio.delete()
+                            else:
+                                actions.delete()
+                            raise serializers.ValidationError(
+                                {'message': f'{action.type} at {action.completed_at} cannot be completed. (Negative Quantity)'})
             # iterate through every asset and get its price at the
             # curr_date
             for asset in current_assets:
@@ -348,8 +364,12 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                     if asset_record.count() > 0:
                         asset_record = asset_record.last()
                     else:
+                        if is_create:
+                            portfolio.delete()
+                        else:
+                            actions.delete()
                         raise serializers.ValidationError(
-                            {'message': f'{asset.symbol} price not found at {curr_date}'})
+                            {'message': f'{asset.id} price not found at {curr_date}'})
 
                 # add the asset_price * quantity to the total value
                 # of the portfolio at the curr_date

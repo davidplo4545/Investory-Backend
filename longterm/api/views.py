@@ -8,7 +8,6 @@ from .serializers import AssetSerializer, PortfolioComparisonRetrieveSerializer,
     PortfolioCreateSerializer, \
     PortfolioListSerializer, PortfolioRetrieveSerializer, ProfileUpdateSerializer, UserSerializer,\
     PortfolioComparisonCreateSerializer
-from .scraper import IsraeliPaperScraper, USPapersScraper
 from .permissions import IsPortfolioComparisonOwner, IsPortfolioOwner
 
 
@@ -93,7 +92,7 @@ class AssetViewSet(viewsets.ViewSet):
 
 class PortfolioViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "delete"]
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsPortfolioOwner]
 
     def get_queryset(self):
         return Portfolio.objects.all()
@@ -101,14 +100,14 @@ class PortfolioViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ["create", "partial_update"]:
             return PortfolioCreateSerializer
-        elif self.action == 'list':
+        elif self.action in ['list', 'me']:
             return PortfolioListSerializer
         elif self.action == 'compare':
             return PortfolioComparisonCreateSerializer
         return PortfolioRetrieveSerializer
 
     def list(self, request):
-        queryset = self.get_queryset()
+        queryset = self.get_queryset().exclude(profile=None)
         serializer = self.get_serializer_class()(
             queryset, many=True)
         return Response(serializer.data)
@@ -174,8 +173,9 @@ class PortfolioComparisonViewSet(viewsets.ModelViewSet):
         return PortfolioComparisonListSerializer
 
     def get_queryset(self):
-        comparisons = self.request.user.profile.portfolio_comparisons
-        return comparisons
+        # comparisons = self.request.user.profile.portfolio_comparisons
+        # return comparisons
+        return PortfolioComparison.objects.all()
 
     def list(self, request):
         queryset = self.get_queryset()
@@ -191,27 +191,3 @@ class PortfolioComparisonViewSet(viewsets.ModelViewSet):
         asset_portfolio.delete()
         comparison.delete()
         return Response(data='delete success')
-
-
-@api_view(['GET', 'POST'])
-def run_script_isr(request):
-    scraper = IsraeliPaperScraper()
-    print('running script')
-    scraper.scrape_to_database()
-    return Response({'status': 'ended script'})
-
-
-@api_view(['GET', 'POST'])
-def run_script_us(request):
-    scraper = USPapersScraper()
-    print('running us script')
-    scraper.scrape_to_database()
-    return Response({'status': 'ended us script'})
-
-
-@api_view(['GET', 'POST'])
-def run_script_crypto(request):
-    scraper = USPapersScraper()
-    print('running crypto script')
-    scraper.scrape_cryptos_to_database()
-    return Response({'status': 'ended crypto script'})

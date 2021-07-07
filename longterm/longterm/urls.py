@@ -1,3 +1,4 @@
+from .scraper import USPapersScraper, IsraeliPaperScraper
 from django.contrib import admin
 from django.urls import path, include
 from django.contrib.auth.models import User
@@ -21,7 +22,22 @@ urlpatterns = [
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path('api/', include('rest_auth.urls')),  # login / logout / user
     path('api/register/', include('rest_auth.registration.urls')),
-    path('script/isr', views.run_script_isr),
-    path('script/us', views.run_script_us),
-    path('script/crypto', views.run_script_crypto),
 ]
+
+
+# Scrapers
+
+us_scraper = USPapersScraper()
+# scrape us stocks
+print('Scraping us stocks')
+us_scraper.scrape_to_database()
+
+isr_scraper = IsraeliPaperScraper()
+
+print('Scraping israeli stocks')
+# scrape israeli stocks
+isr_scraper.scrape_to_database()
+
+print('Scraping cryptos')
+# scrape crypto
+us_scraper.scrape_cryptos_to_database()

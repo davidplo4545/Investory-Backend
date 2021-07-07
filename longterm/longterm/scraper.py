@@ -13,6 +13,7 @@ import os
 import sys
 import json
 import threading
+from django.utils import timezone
 
 DIR_PATH = os.path.join(
     'C:\\Users\\David\\Desktop\\Projects\\Long-Term\\longterm\\longterm', 'media')
@@ -33,6 +34,7 @@ def scrape_maya():
 
 class IsraeliPaperScraper:
     def __init__(self):
+        self.conversion_rate = 3.25
         self.papers_data = []
         self.isr_stocks_csv_path = os.path.join(DIR_PATH, 'isr_papers.csv')
 
@@ -49,7 +51,8 @@ class IsraeliPaperScraper:
         try:
             paper = IsraelPaper.objects.get(paper_id=paper_id)
             last_date = datetime.strptime(data_points[0]['D_p'], '%d/%m/%Y')
-            last_price = float(data_points[0]['C_p'])
+            last_price = float(
+                data_points[0]['C_p']) / 100.0 / self.conversion_rate
             # check if record exists already, create new one if it doesn't
             last_db_record = AssetRecord.objects.filter(
                 date=last_date, asset=paper).count()
@@ -59,6 +62,7 @@ class IsraeliPaperScraper:
             new_record = AssetRecord(
                 asset=paper, date=last_date, price=last_price)
             paper.last_price = last_price
+            paper.last_updated = timezone.now()
             return (paper, [new_record])
 
         except:
@@ -80,13 +84,15 @@ class IsraeliPaperScraper:
             paper.paper_id = paper_id
             records = []
             if data_points:
-                paper.last_price = float(data_points[0]['C_p'])
+                paper.last_price = float(
+                    data_points[0]['C_p']) / 100.0 / self.conversion_rate
+                paper.last_updated = timezone.now()
                 # creates list of AssetRecord objects
                 for point in data_points:
                     date = point['D_p']
                     date = datetime.strptime(date, '%d/%m/%Y')
                     record = AssetRecord(
-                        asset=paper, date=date, price=float(point['C_p']))
+                        asset=paper, date=date, price=float(point['C_p']) / 100.0 / self.conversion_rate)
                     records.append(record)
             return (paper, records)
 
@@ -192,12 +198,11 @@ class USPapersScraper:
     def scrape_stock(self, ticker):
         stock_df = []
         symbol = ticker.upper()
-
         ticker = yf.Ticker(ticker)
         ticker_info = ticker.info
-
         # end-case if quoteType does is not found
         if 'quoteType' not in ticker_info or 'longName' not in ticker_info:
+            print(f'{symbol} quote type not found {ticker_info}')
             return (None, [], [])
 
         quote_type = 'stock' if ticker_info['quoteType'] == 'EQUITY' else 'etf'
@@ -227,6 +232,7 @@ class USPapersScraper:
                     asset=paper, date=parse(last_date))
                 last_db_record.price = last_price
                 paper.last_price = last_price
+                paper.last_updated = timezone.now()
                 print(f'{symbol} Updating old record')
                 return (paper, [], [last_db_record])
             except:
@@ -235,6 +241,7 @@ class USPapersScraper:
                 new_record = AssetRecord(
                     asset=paper, date=parse(last_date), price=last_price)
                 paper.last_price = last_price
+                paper.last_updated = timezone.now()
                 return (paper, [], [new_record])
         except:
             paper = USPaper()
@@ -251,6 +258,7 @@ class USPapersScraper:
                 last_date = list(data_points.keys())[-1]
                 last_price = data_points[last_date]
                 paper.last_price = last_price
+                paper.last_updated = timezone.now()
                 for key, value in data_points.items():
                     try:
                         record = AssetRecord(
@@ -285,6 +293,7 @@ class USPapersScraper:
                         asset=crypto_obj, date=parse(last_date))
                     last_db_record.price = last_price
                     crypto_obj.last_price = last_price
+                    crypto_obj.last_updated = timezone.now()
                     crypto_obj.save()
                     last_db_record.save()
                     continue
@@ -293,6 +302,7 @@ class USPapersScraper:
                     new_record = AssetRecord(
                         asset=crypto_obj, date=parse(last_date), price=last_price)
                     crypto_obj.last_price = last_price
+                    crypto_obj.last_updated = timezone.now()
                     crypto_obj.save()
                     new_record.save()
                     continue
@@ -305,6 +315,7 @@ class USPapersScraper:
                 last_date = list(data_points.keys())[-1]
                 last_price = data_points[last_date]
                 crypto_obj.last_price = last_price
+                crypto_obj.last_updated = timezone.now()
                 for key, value in data_points.items():
                     try:
                         record = AssetRecord(
@@ -316,14 +327,3 @@ class USPapersScraper:
                 print(f'crypto {crypto} saved')
                 AssetRecord.objects.bulk_create(records)
                 print(f'crypto {crypto} saved records')
-
-
-# scraper = IsraeliPaperScraper()
-# scraper.scrape_to_database()
-print(parse('06/07/2021').day)
-# print('done israeli')
-# scraper = USPapersScraper()
-# scraper.get_last_data_point('aal')
-# scraper.scrape_stock('BBT')
-
-# scraper.scrape_cryptos()

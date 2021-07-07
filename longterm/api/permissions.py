@@ -13,4 +13,9 @@ class IsPortfolioOwner(permissions.BasePermission):
 
 class IsPortfolioComparisonOwner(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
-        return obj.profile == request.user.profile
+        if view.action in ["retrieve", "list"]:
+            return True
+        elif view.action in ["partial_update", "update", "destroy"]:
+            # only portfolio user can edit/delete/compare the portfolio
+            return obj.profile == request.user.profile
+        return False

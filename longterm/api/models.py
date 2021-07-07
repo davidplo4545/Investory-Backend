@@ -61,6 +61,7 @@ class IsraelPaper(Asset):
     name = models.CharField(max_length=120)
     symbol = models.CharField(max_length=30, blank=True, null=True)
     last_price = models.FloatField(blank=True, null=True)
+    last_updated = models.DateTimeField(blank=True, null=True)
 
 
 class USPaper(Asset):
@@ -71,12 +72,14 @@ class USPaper(Asset):
     last_price = models.FloatField(blank=True, null=True)
     sector = models.CharField(max_length=200, blank=True, null=True)
     industry = models.CharField(max_length=200, blank=True, null=True)
+    last_updated = models.DateTimeField(blank=True, null=True)
 
 
 class Crypto(Asset):
     symbol = models.CharField(max_length=20)
     name = models.CharField(max_length=30)
     last_price = models.FloatField(blank=True, null=True)
+    last_updated = models.DateTimeField(blank=True, null=True)
 
 
 class AssetRecord(models.Model):
@@ -87,13 +90,14 @@ class AssetRecord(models.Model):
 
 
 class Portfolio(models.Model):
-    name = models.CharField(max_length=200, unique=True)
+    name = models.CharField(max_length=200)
     # link_uid
     profile = models.ForeignKey(
         Profile, on_delete=models.CASCADE, related_name='portfolios', null=True)
     is_shared = models.BooleanField(default=True)
     created_at = models.DateField(auto_now_add=True)
     started_at = models.DateField(blank=True, null=True)
+    realized_gain = models.FloatField(default=0)
 
     class Meta:
         ordering = ('started_at',)
@@ -112,8 +116,7 @@ class PortfolioAction(models.Model):
     total_value = models.FloatField(blank=True, default=0, editable=False)
     completed_at = models.DateField(default=datetime.date.today)
 
-    def save(self, *args, **kwargs):
-        self.total_cost = self.share_price * self.quantity
+    def get_total_value(self):
         asset_id = self.asset.id
         try:
             asset = USPaper.objects.get(id=asset_id)
@@ -123,6 +126,11 @@ class PortfolioAction(models.Model):
             except:
                 asset = Crypto.objects.get(id=asset_id)
         self.total_value = asset.last_price * self.quantity
+        return self.total_value
+
+    def save(self, *args, **kwargs):
+        self.total_cost = self.share_price * self.quantity
+        self.get_total_value()
         super(PortfolioAction, self).save(*args, **kwargs)
 
     class Meta:
