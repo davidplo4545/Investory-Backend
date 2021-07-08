@@ -1,4 +1,4 @@
-from .scraper import USPapersScraper, IsraeliPaperScraper
+from .scraper import USPapersScraper, IsraeliPaperScraper, Updater
 from django.contrib import admin
 from django.urls import path, include
 from django.contrib.auth.models import User
@@ -25,19 +25,26 @@ urlpatterns = [
 ]
 
 
+is_scrape = False
+is_updater = False
+if is_updater:
+    u = Updater()
+    u.update_all_portfolios()
+    print('Finished updating portfolios')
+
 # Scrapers
+if is_scrape:
+    us_scraper = USPapersScraper()
+    # scrape us stocks
+    print('Scraping us stocks')
+    us_scraper.scrape_to_database()
 
-us_scraper = USPapersScraper()
-# scrape us stocks
-print('Scraping us stocks')
-us_scraper.scrape_to_database()
+    isr_scraper = IsraeliPaperScraper()
 
-isr_scraper = IsraeliPaperScraper()
+    print('Scraping israeli stocks')
+    # scrape israeli stocks
+    isr_scraper.scrape_to_database()
 
-print('Scraping israeli stocks')
-# scrape israeli stocks
-isr_scraper.scrape_to_database()
-
-print('Scraping cryptos')
-# scrape crypto
-us_scraper.scrape_cryptos_to_database()
+    print('Scraping cryptos')
+    # scrape crypto
+    us_scraper.scrape_cryptos_to_database()

@@ -98,6 +98,8 @@ class Portfolio(models.Model):
     created_at = models.DateField(auto_now_add=True)
     started_at = models.DateField(blank=True, null=True)
     realized_gain = models.FloatField(default=0)
+    total_value = models.FloatField(blank=True, default=0, editable=False)
+    total_cost = models.FloatField(blank=True, default=0, editable=False)
 
     class Meta:
         ordering = ('started_at',)
@@ -113,24 +115,10 @@ class PortfolioAction(models.Model):
     quantity = models.FloatField(default=0)
     share_price = models.FloatField(default=0)
     total_cost = models.FloatField(blank=True, default=0, editable=False)
-    total_value = models.FloatField(blank=True, default=0, editable=False)
     completed_at = models.DateField(default=datetime.date.today)
-
-    def get_total_value(self):
-        asset_id = self.asset.id
-        try:
-            asset = USPaper.objects.get(id=asset_id)
-        except:
-            try:
-                asset = IsraelPaper.objects.get(id=asset_id)
-            except:
-                asset = Crypto.objects.get(id=asset_id)
-        self.total_value = asset.last_price * self.quantity
-        return self.total_value
 
     def save(self, *args, **kwargs):
         self.total_cost = self.share_price * self.quantity
-        self.get_total_value()
         super(PortfolioAction, self).save(*args, **kwargs)
 
     class Meta:
@@ -155,7 +143,22 @@ class Holding(models.Model):
     quantity = models.FloatField()
     cost_basis = models.FloatField(blank=True)
     total_cost = models.FloatField(blank=True, default=0)
-    total_value = models.FloatField(blank=True, default=0)
+    total_value = models.FloatField(blank=True, default=0, editable=False)
+
+    def calculate_total_value(self):
+        """
+        Calculates and returns latest total holding value based on the
+        last asset price.
+        """
+        asset_id = self.asset.id
+        try:
+            asset = USPaper.objects.get(id=asset_id)
+        except:
+            try:
+                asset = IsraelPaper.objects.get(id=asset_id)
+            except:
+                asset = Crypto.objects.get(id=asset_id)
+        return asset.last_price * self.quantity
 
 
 class PortfolioComparison(models.Model):

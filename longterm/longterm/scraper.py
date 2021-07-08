@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from api.models import AssetRecord, Crypto, IsraelPaper, USPaper
+from api.models import AssetRecord, Crypto, IsraelPaper, USPaper,\
+    Portfolio, PortfolioRecord, Holding
 import django
 from dateutil import parser
 from dateutil.parser import parse
-from datetime import datetime
+import datetime
 import yfinance as yf
 from pathlib import Path
 import requests
@@ -50,7 +51,8 @@ class IsraeliPaperScraper:
         # check if paper exists in database
         try:
             paper = IsraelPaper.objects.get(paper_id=paper_id)
-            last_date = datetime.strptime(data_points[0]['D_p'], '%d/%m/%Y')
+            last_date = datetime.datetime.strptime(
+                data_points[0]['D_p'], '%d/%m/%Y')
             last_price = float(
                 data_points[0]['C_p']) / 100.0 / self.conversion_rate
             # check if record exists already, create new one if it doesn't
@@ -90,7 +92,7 @@ class IsraeliPaperScraper:
                 # creates list of AssetRecord objects
                 for point in data_points:
                     date = point['D_p']
-                    date = datetime.strptime(date, '%d/%m/%Y')
+                    date = datetime.datetime.strptime(date, '%d/%m/%Y')
                     record = AssetRecord(
                         asset=paper, date=date, price=float(point['C_p']) / 100.0 / self.conversion_rate)
                     records.append(record)
@@ -278,7 +280,6 @@ class USPapersScraper:
             crypto_df = crypto_df.drop(
                 columns=['Volume', 'High', 'Low', 'Open', 'Dividends', 'Stock Splits'])
             crypto_json = json.loads(crypto_df.to_json(date_format='iso'))
-            # print(crypto_json)
             data_points = crypto_json['Close']
             print(f'Scraping Crypto {crypto}')
             # check if ticker already exists in database
@@ -327,3 +328,49 @@ class USPapersScraper:
                 print(f'crypto {crypto} saved')
                 AssetRecord.objects.bulk_create(records)
                 print(f'crypto {crypto} saved records')
+
+
+class Updater:
+    def get_all_portfolios(self):
+        return Portfolio.objects.all()
+
+    def update_all_portfolios(self):
+        for portfolio in self.get_all_portfolios():
+            self.update_portfolio(portfolio)
+
+    def update_portfolio(self, portfolio):
+        holdings = portfolio.holdings.all()
+        total_value = 0
+        total_cost = 0
+        if holdings.count() > 0:
+            for holding in holdings:
+                # calculate the total_value of the holdings and
+                # add it to the total portfolio value
+                holding.total_value = holding.calculate_total_value()
+                total_value += holding.total_value
+                holding.save()
+
+        actions = portfolio.actions.all()
+        if actions.count() > 0:
+            for action in actions:
+                if action.type == "SELL":
+                    total_cost -= action.total_cost
+                else:
+                    total_cost += action.total_cost
+
+        portfolio.total_value = total_value
+        portfolio.total_cost = total_cost
+        portfolio.save()
+
+        # Update/Create last record
+        try:
+            last_record = PortfolioRecord.objects.get(
+                portfolio=portfolio, date=datetime.date.today())
+            last_record.price = portfolio.total_value
+            last_record.save()
+        except:
+            new_record = PortfolioRecord()
+            new_record.portfolio = portfolio
+            new_record.date = datetime.date.today()
+            new_record.price = portfolio.total_value
+            new_record.save()

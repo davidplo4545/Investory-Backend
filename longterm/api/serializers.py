@@ -72,7 +72,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'is_superuser', 'profile']
+        fields = ['id', 'email', 'profile']
 
 
 class AssetSerializer(serializers.ModelSerializer):
@@ -211,11 +211,13 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
         portfolio.started_at = portfolio.actions.order_by(
             'completed_at').first().completed_at
 
-        records = self.calculate_portfolio_records(
+        total_value,  records = self.calculate_portfolio_records(
             portfolio, portfolio.actions.all(), True)
 
         PortfolioRecord.objects.bulk_create(records)
-        self.save_portfolio_holdings(portfolio)
+        total_cost = self.save_portfolio_holdings(portfolio)
+        portfolio.total_value = total_value
+        portfolio.total_cost = total_cost
         portfolio.save()
         return portfolio
 
@@ -235,7 +237,7 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
             instance.started_at = instance.actions.order_by('completed_at')[
                 0].completed_at
 
-            new_records = self.calculate_portfolio_records(
+            total_value, new_records = self.calculate_portfolio_records(
                 instance, new_actions, False)
             if new_records:
                 # delete old records and actions if everything is valid
@@ -243,19 +245,23 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                     pk__in=actions_pks_to_delete).delete()
                 holdings_to_delete.delete()
                 records_to_delete.delete()
-                self.save_portfolio_holdings(instance)
+                total_cost = self.save_portfolio_holdings(instance)
                 PortfolioRecord.objects.bulk_create(new_records)
 
         if 'name' in validated_data:
             instance.name = validated_data['name']
         if 'is_shared' in validated_data:
             instance.is_shared = validated_data['is_shared']
+
+        instance.total_cost = total_cost
+        instance.total_value = total_value
         instance.save()
         return instance
 
     def save_portfolio_holdings(self, portfolio):
         actions = portfolio.actions.all()
         holdings = {}
+        total_cost = 0
         for action in actions:
             if action.asset in holdings:
                 is_buy = 1 if action.type == "BUY" else -1
@@ -264,6 +270,7 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                     holding.quantity += action.quantity * is_buy
                     holding.total_cost += action.total_cost * is_buy
                     holding.cost_basis = holding.total_cost / holding.quantity
+                    holding.total_value = holding.calculate_total_value()
                 else:
                     portfolio.realized_gain += action.quantity * (action.share_price
                                                                   - holding.cost_basis)
@@ -272,18 +279,24 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                     else:
                         holding.quantity += action.quantity * is_buy
                         holding.total_cost -= holding.cost_basis * action.quantity
-
+                        holding.total_value = holding.calculate_total_value()
             else:
                 holding = Holding()
                 holding.portfolio = portfolio
                 holding.asset = action.asset
                 holding.quantity = action.quantity
-                # holding.total_value = action.total_value
                 holding.total_cost = action.total_cost
                 holding.cost_basis = holding.total_cost / holding.quantity
+                holding.total_value = holding.calculate_total_value()
                 holdings[action.asset] = holding
 
+            if action.type == 'SELL':
+                total_cost -= action.total_cost
+            else:
+                total_cost += action.total_cost
+
         Holding.objects.bulk_create(list(holdings.values()))
+        return total_cost
 
     def validate_portfolio_actions(self, portfolio, actions):
         valid_serializers = []
@@ -325,7 +338,7 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                     is_buy = 1
                     if action.type == 'SELL':
                         is_buy = -1
-                        # calculate gain/loss on SELL order
+                    # calculate gain/loss on SELL order
                     if action.asset in current_assets:
                         current_assets[action.asset] += is_buy * \
                             action.quantity
@@ -379,9 +392,11 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                 else:
                     records[str(curr_date)] = asset_record.price * \
                         current_assets[asset]
-                portfolio_records.append(PortfolioRecord(
-                    portfolio=portfolio, date=curr_date, price=records[str(curr_date)]))
-        return portfolio_records
+
+            portfolio_records.append(PortfolioRecord(
+                portfolio=portfolio, date=curr_date, price=records[str(curr_date)]))
+        last_price = records[str(curr_date)]
+        return (last_price, portfolio_records)
 
 
 class PortfolioRetrieveSerializer(serializers.ModelSerializer):
