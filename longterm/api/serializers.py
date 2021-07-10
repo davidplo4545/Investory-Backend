@@ -191,13 +191,15 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
         Check that user doesn't have portfolio with same name already.
         """
         profile = self.context['profile']
-        name = data['name']
-        portfolios = Portfolio.objects.filter(profile=profile, name=name)
-        if portfolios.count() > 0:
-            raise serializers.ValidationError(
-                {"Validation error": "Portoflio with this name already exists."})
-        else:
-            return data
+        if 'name' in data:
+            name = data['name']
+            portfolios = Portfolio.objects.filter(profile=profile, name=name)
+            if portfolios.count() > 0:
+                raise serializers.ValidationError(
+                    {"Validation error": "Portoflio with this name already exists."})
+            else:
+                return data
+        return data
 
     def create(self, validated_data):
         portfolio = Portfolio(name=validated_data['name'])
@@ -246,15 +248,16 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                 holdings_to_delete.delete()
                 records_to_delete.delete()
                 total_cost = self.save_portfolio_holdings(instance)
+                instance.total_cost = total_cost
                 PortfolioRecord.objects.bulk_create(new_records)
+
+            instance.total_value = total_value
 
         if 'name' in validated_data:
             instance.name = validated_data['name']
         if 'is_shared' in validated_data:
             instance.is_shared = validated_data['is_shared']
 
-        instance.total_cost = total_cost
-        instance.total_value = total_value
         instance.save()
         return instance
 

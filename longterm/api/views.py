@@ -48,7 +48,7 @@ class AssetViewSet(viewsets.ViewSet):
                 if symbol:
                     symbol = symbol.upper()
                     try:
-                        return IsraelPaper.objects.get(paper_id=symbol)
+                        return IsraelPaper.objects.filter(paper_id=symbol)
                     except:
                         return Response({'error': 'No Israeli papers were found.'}, status=status.HTTP_400_BAD_REQUEST)
                 else:
@@ -57,7 +57,7 @@ class AssetViewSet(viewsets.ViewSet):
                 if symbol:
                     symbol = symbol.upper()
                     try:
-                        return USPaper.objects.get(symbol=symbol)
+                        return USPaper.objects.filter(symbol=symbol)
                     except:
                         return Response({'error': 'No US papers were found.'}, status=status.HTTP_400_BAD_REQUEST)
                 else:
@@ -66,7 +66,7 @@ class AssetViewSet(viewsets.ViewSet):
                 if symbol:
                     symbol = symbol.upper()
                     try:
-                        return Crypto.objects.get(symbol=symbol)
+                        return Crypto.objects.filter(symbol=symbol)
                     except:
                         return Response({'error': 'No cryptos were found.'}, status=status.HTTP_400_BAD_REQUEST)
                 else:
@@ -117,15 +117,16 @@ class PortfolioViewSet(viewsets.ModelViewSet):
             'profile': self.request.user.profile})
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
-        return Response({"status": "Portfolio was created."}, status=status.HTTP_200_OK)
+        return Response(serializer.data)
 
     def perform_create(self, serializer):
-        serializer.save()
+        return serializer.save()
 
     def partial_update(self, request, pk=None):
         instance = Portfolio.objects.get(pk=pk)
         serializer = self.get_serializer_class()(
-            instance, data=request.data, partial=True)
+            instance, data=request.data, partial=True,  context={
+                'profile': self.request.user.profile})
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
@@ -190,4 +191,4 @@ class PortfolioComparisonViewSet(viewsets.ModelViewSet):
         asset_portfolio = comparison.asset_portfolio
         asset_portfolio.delete()
         comparison.delete()
-        return Response(data='delete success')
+        return Response({'message': 'Successfuly delete the portfolio comparison.'})

@@ -31,7 +31,8 @@ ttcf 1286
            "share_price":50,
            "completed_at": "2019-07-15"
          }
-    ]
+    ],
+    "is_shared":false
 }
 
 
