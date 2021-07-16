@@ -88,6 +88,9 @@ class AssetRecord(models.Model):
     date = models.DateField()
     price = models.FloatField()
 
+    class Meta:
+        ordering = ('date',)
+
 
 class Portfolio(models.Model):
     name = models.CharField(max_length=200)
