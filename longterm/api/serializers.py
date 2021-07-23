@@ -110,6 +110,29 @@ class AssetSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class SingleAssetSerializer(serializers.ModelSerializer):
+    def to_representation(self, instance):
+        try:
+            obj = IsraelPaper.objects.get(id=instance.id)
+            data = IsraeliPaperSerializer(instance=obj).data
+            data['asset'] = 'ISR'
+        except:
+            try:
+                obj = USPaper.objects.get(id=instance.id)
+                data = USPaperSerializer(instance=obj).data
+                data['asset'] = 'US'
+            except:
+                obj = Crypto.objects.get(id=instance.id)
+                data = CryptoSerializer(instance=obj).data
+                data['asset'] = 'Crypto'
+
+        return data
+
+    class Meta:
+        model = Asset
+        fields = '__all__'
+
+
 class AssetRecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = AssetRecord
@@ -136,21 +159,24 @@ class CryptoSerializer(serializers.ModelSerializer):
 
 
 class PortfolioActionSerializer(serializers.Serializer):
-    asset = serializers.PrimaryKeyRelatedField(
+    asset_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
         queryset=Asset.objects.select_subclasses())
+    asset = SingleAssetSerializer(read_only=True)
     type = serializers.ChoiceField(choices=ACTION_CHOICES)
     quantity = serializers.FloatField()
     share_price = serializers.FloatField()
     completed_at = serializers.DateField()
 
     class Meta:
-        fields = ['asset', 'type', 'quantity',
+        fields = ['asset',  'type', 'quantity',
                   'share_price', 'completed_at']
 
     def create(self, validated_data):
         action = PortfolioAction()
         try:
-            asset = Asset.objects.get(id=validated_data['asset'].id)
+            asset = Asset.objects.get(id=validated_data['asset_id'].pk)
+            print(asset)
             action.asset = asset
         except:
             raise serializers.ValidationError(
@@ -171,6 +197,8 @@ class PortfolioRecordSerializer(serializers.ModelSerializer):
 
 
 class HoldingSerializer(serializers.ModelSerializer):
+    asset = SingleAssetSerializer(read_only=True)
+
     class Meta:
         model = Holding
         fields = ['quantity', 'cost_basis',
@@ -304,7 +332,7 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
     def validate_portfolio_actions(self, portfolio, actions):
         valid_serializers = []
         for action in actions:
-            action['asset'] = action['asset'].pk
+            action['asset_id'] = action['asset_id'].pk
             serializer = PortfolioActionSerializer(
                 data=action, context={'portfolio': portfolio})
             if serializer.is_valid(raise_exception=True):
