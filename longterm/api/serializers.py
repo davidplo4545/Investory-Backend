@@ -176,7 +176,6 @@ class PortfolioActionSerializer(serializers.Serializer):
         action = PortfolioAction()
         try:
             asset = Asset.objects.get(id=validated_data['asset_id'].pk)
-            print(asset)
             action.asset = asset
         except:
             raise serializers.ValidationError(
@@ -212,7 +211,7 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Portfolio
-        fields = ['name', 'actions', 'holdings', 'records', 'is_shared']
+        fields = ['id', 'name', 'actions', 'holdings', 'records', 'is_shared']
 
     def validate(self, data):
         """

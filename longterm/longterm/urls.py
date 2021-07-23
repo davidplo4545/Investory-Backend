@@ -27,6 +27,7 @@ urlpatterns = [
 
 is_scrape = False
 is_updater = False
+
 if is_updater:
     u = Updater()
     u.update_all_portfolios()
