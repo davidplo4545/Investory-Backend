@@ -218,7 +218,8 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
         Check that user doesn't have portfolio with same name already.
         """
         profile = self.context['profile']
-        if 'name' in data:
+        action = self.context['action']
+        if 'name' in data and action != 'partial_update':
             name = data['name']
             portfolios = Portfolio.objects.filter(profile=profile, name=name)
             if portfolios.count() > 0:
@@ -279,7 +280,6 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                 PortfolioRecord.objects.bulk_create(new_records)
 
             instance.total_value = total_value
-
         if 'name' in validated_data:
             instance.name = validated_data['name']
         if 'is_shared' in validated_data:
@@ -403,7 +403,7 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                     # not be found the records (different trading days/holidays)
                     asset_record = AssetRecord.objects.filter(
                         asset=asset,
-                        date__range=[curr_date - timedelta(5), curr_date])
+                        date__range=[curr_date - timedelta(31), curr_date])
                     if asset_record.count() > 0:
                         asset_record = asset_record.last()
                     else:
@@ -479,7 +479,7 @@ class PortfolioComparisonCreateSerializer(serializers.Serializer):
                 # not be found the records (different trading days/holidays)
                 asset_record_at_action_date = AssetRecord.objects.filter(
                     asset=asset,
-                    date__range=[action.completed_at - timedelta(5), action.completed_at])
+                    date__range=[action.completed_at - timedelta(31), action.completed_at])
                 if asset_record_at_action_date.count() > 0:
                     asset_record_at_action_date = asset_record_at_action_date.last()
                 else:
@@ -489,7 +489,7 @@ class PortfolioComparisonCreateSerializer(serializers.Serializer):
             asset_price = asset_record_at_action_date.price
             quantity = action.total_cost / asset_price
             asset_action = {"type": action.type,
-                            "asset": asset.id,
+                            "asset_id": asset.id,
                             "quantity": quantity,
                             "share_price": asset_price,
                             "completed_at": action.completed_at}
@@ -498,7 +498,7 @@ class PortfolioComparisonCreateSerializer(serializers.Serializer):
         name = f'{portfolio.name} vs {asset.symbol}'
         serializer_data = {"name": name, "actions": asset_actions}
         serializer = PortfolioCreateSerializer(data=serializer_data, context={
-            'profile': None})
+            'profile': None, 'action': 'create'})
         serializer.is_valid(raise_exception=True)
         asset_portfolio = serializer.save()
         comparison = PortfolioComparison(asset_portfolio=asset_portfolio,

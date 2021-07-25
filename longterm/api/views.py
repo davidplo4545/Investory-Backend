@@ -114,7 +114,7 @@ class PortfolioViewSet(viewsets.ModelViewSet):
 
     def create(self, request):
         serializer = self.get_serializer_class()(data=request.data, context={
-            'profile': self.request.user.profile})
+            'profile': self.request.user.profile, 'action': self.action})
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         return Response(serializer.data)
@@ -126,7 +126,7 @@ class PortfolioViewSet(viewsets.ModelViewSet):
         instance = Portfolio.objects.get(pk=pk)
         serializer = self.get_serializer_class()(
             instance, data=request.data, partial=True,  context={
-                'profile': self.request.user.profile})
+                'profile': self.request.user.profile, 'action': self.action})
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
@@ -158,8 +158,10 @@ class PortfolioViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             portfolio_comparison = serializer.save()
 
-        serializer = PortfolioComparisonRetrieveSerializer(
-            portfolio_comparison, context={'count': 1})
+        # serializer = PortfolioComparisonRetrieveSerializer(
+        #     portfolio_comparison, context={'count': 1})
+        serializer = PortfolioRetrieveSerializer(
+            portfolio_comparison.asset_portfolio)
         return Response(serializer.data)
 
 
