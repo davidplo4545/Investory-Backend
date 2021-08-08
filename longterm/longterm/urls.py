@@ -28,10 +28,6 @@ urlpatterns = [
 is_scrape = False
 is_updater = False
 
-if is_updater:
-    u = Updater()
-    u.update_all_portfolios()
-    print('Finished updating portfolios')
 
 # Scrapers
 if is_scrape:
@@ -49,3 +45,8 @@ if is_scrape:
     print('Scraping cryptos')
     # scrape crypto
     us_scraper.scrape_cryptos_to_database()
+
+if is_updater:
+    u = Updater()
+    u.update_all_portfolios()
+    print('Finished updating portfolios')

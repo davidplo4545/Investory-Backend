@@ -200,7 +200,7 @@ class HoldingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Holding
-        fields = ['quantity', 'cost_basis',
+        fields = ['id', 'quantity', 'cost_basis',
                   'total_cost', 'total_value', "asset"]
 
 
@@ -262,9 +262,8 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
 
             new_actions = instance.actions.exclude(
                 pk__in=actions_pks_to_delete)
-
             # set the earliest portfolio action date
-            instance.started_at = instance.actions.order_by('completed_at')[
+            instance.started_at = new_actions.order_by('completed_at')[
                 0].completed_at
 
             total_value, new_records = self.calculate_portfolio_records(
@@ -422,7 +421,7 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                 else:
                     records[str(curr_date)] = asset_record.price * \
                         current_assets[asset]
-
+            print(portfolio.started_at)
             portfolio_records.append(PortfolioRecord(
                 portfolio=portfolio, date=curr_date, price=records[str(curr_date)]))
         last_price = records[str(curr_date)]

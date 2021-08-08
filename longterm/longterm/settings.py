@@ -172,4 +172,10 @@ ACCOUNT_EMAIL_VERIFICATION = 'none'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Allow request from all domains - TESTING
+# CORS_ORIGIN_ALLOW_ALL = True
+# ALLOWED_HOSTS = ['http://localhost:3000', 'http://192.168.1.106:3000']
+
+
 CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
+ALLOWED_HOSTS = ['*']
