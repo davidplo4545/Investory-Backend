@@ -3,31 +3,27 @@ from django.contrib import admin
 from django.urls import path, include, reverse
 from django.shortcuts import redirect
 from django.contrib.auth.models import User
-from rest_auth.registration.views import SocialLoginView
 from rest_framework import routers
 import urllib.parse
 from api import views
-from allauth.socialaccount.providers.github import views as github_views
-from allauth.socialaccount.providers.oauth2.client import OAuth2Client
+from api import social_views
 
 
-class GitHubLogin(SocialLoginView):
-    adapter_class = github_views.GitHubOAuth2Adapter
-    client_class = OAuth2Client
-    print('here')
+# class GitHubLogin(SocialLoginView):
+#     adapter_class = github_views.GitHubOAuth2Adapter
+#     client_class = OAuth2Client
 
-    @property
-    def callback_url(self):
-        print('here1')
-        # use the same callback url as defined in your GitHub app, this url must
-        # be absolute:
-        return self.request.build_absolute_uri(reverse('github_callback'))
+#     @property
+#     def callback_url(self):
+#         # use the same callback url as defined in your GitHub app, this url must
+#         # be absolute:
+#         return self.request.build_absolute_uri(reverse('github_callback'))
 
 
-def github_callback(request):
-    params = urllib.parse.urlencode(request.GET)
-    return redirect(f'https://127.0.0.1:3000')
-    # return redirect(f'https://frontend/auth/github?{params}')
+# def github_callback(request):
+#     params = urllib.parse.urlencode(request.GET)
+#     return redirect(f'http://localhost:3000/auth/github?{params}')
+#     # return redirect(f'https://frontend/auth/github?{params}')
 
 
 # Routers provide a way of automatically determining the URL conf.
@@ -46,9 +42,12 @@ urlpatterns = [
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path('api/', include('rest_auth.urls')),  # login / logout / user
     path('api/register/', include('rest_auth.registration.urls')),
-    path('', GitHubLogin.as_view()),
-    path('auth/github/callback/', github_callback, name='github_callback'),
-    path('auth/github/url/', github_views.oauth2_login),
+    path('rest-auth/facebook/', social_views.FacebookLogin.as_view(),
+         name='facebook_login'),
+    path('rest-auth/google/', social_views.GoogleLogin.as_view(), name='google_login'),
+    path('accounts/', include('allauth.urls'), name='socialaccount_signup'),
+    # path('res/github/callback/', github_callback, name='github_callback'),
+    # path('auth/github/url/', github_views.oauth2_login),
 ]
 
 
