@@ -70,12 +70,45 @@ class USPaper(Asset):
     name = models.CharField(max_length=120)
     symbol = models.CharField(max_length=6)
     last_price = models.FloatField(blank=True, null=True)
+    last_updated = models.DateTimeField(blank=True, null=True)
+
+    # General
     sector = models.CharField(max_length=200, blank=True, null=True)
     industry = models.CharField(max_length=200, blank=True, null=True)
-    last_updated = models.DateTimeField(blank=True, null=True)
+    market_cap = models.FloatField(blank=True, null=True)
+    business_summary = models.TextField(blank=True, null=True)
+    website_url = models.URLField(blank=True, null=True)
+    logo_url = models.URLField(blank=True, null=True)
+    fulltime_employees = models.IntegerField(blank=True, null=True)
+    one_year_high = models.FloatField(blank=True, null=True)
+    one_year_low = models.FloatField(blank=True, null=True)
+
+    # Valuation Metrics
+    enterprise_value = models.FloatField(blank=True, null=True)
+    book_value = models.FloatField(blank=True, null=True)
+    price_to_book = models.FloatField(blank=True, null=True)
+    current_ratio = models.FloatField(blank=True, null=True)
+    trailing_pe = models.FloatField(blank=True, null=True)
+    forward_pe = models.FloatField(blank=True, null=True)
+    peg_ratio = models.FloatField(blank=True, null=True)
+    ps_ratio = models.FloatField(blank=True, null=True)
+    revenue_growth = models.FloatField(blank=True, null=True)
+
+    # Returns
+    six_month_return = models.FloatField(blank=True, null=True)
+    ytd_return = models.FloatField(blank=True, null=True)
+    one_year_return = models.FloatField(blank=True, null=True)
+    three_year_return = models.FloatField(blank=True, null=True)
+    five_year_return = models.FloatField(blank=True, null=True)
+
+    # Analysts
+    num_of_analysts = models.IntegerField(blank=True, null=True)
+    mean_analyst_price = models.FloatField(blank=True, null=True)
 
 
 class Crypto(Asset):
+    type = models.CharField(
+        max_length=9, default="Crypto", editable=False)
     symbol = models.CharField(max_length=20)
     name = models.CharField(max_length=30)
     last_price = models.FloatField(blank=True, null=True)

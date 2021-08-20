@@ -421,7 +421,6 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                 else:
                     records[str(curr_date)] = asset_record.price * \
                         current_assets[asset]
-            print(portfolio.started_at)
             portfolio_records.append(PortfolioRecord(
                 portfolio=portfolio, date=curr_date, price=records[str(curr_date)]))
         last_price = records[str(curr_date)]

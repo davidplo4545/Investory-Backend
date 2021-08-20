@@ -20,19 +20,6 @@ DIR_PATH = os.path.join(
     'C:\\Users\\David\\Desktop\\Projects\\Long-Term\\longterm\\longterm', 'media')
 
 
-def scrape_maya():
-    url = 'https://mayaapi.tase.co.il/api/fund/history'
-
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36',
-        'X-Maya-With': 'allow'}
-    payload = {'DateFrom': '2021-04-25T21:00:00.000Z',
-               'DateTo': '2021-05-25T21:00:00.000Z', 'FundId': '5122627', 'Page': 6, 'Period': 7}
-
-    r = requests.post(url, headers=headers, data=payload)
-    print(r.json())
-
-
 class IsraeliPaperScraper:
     def __init__(self):
         self.conversion_rate = 3.25
