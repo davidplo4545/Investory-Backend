@@ -22,7 +22,6 @@ DIR_PATH = os.path.join(
 
 class IsraeliPaperScraper:
     def __init__(self):
-        self.conversion_rate = 3.25
         self.papers_data = []
         self.isr_stocks_csv_path = os.path.join(DIR_PATH, 'isr_papers.csv')
 
@@ -41,7 +40,7 @@ class IsraeliPaperScraper:
             last_date = datetime.datetime.strptime(
                 data_points[0]['D_p'], '%d/%m/%Y')
             last_price = float(
-                data_points[0]['C_p']) / 100.0 / self.conversion_rate
+                data_points[0]['C_p']) / 100.0
             # check if record exists already, create new one if it doesn't
             last_db_record = AssetRecord.objects.filter(
                 date=last_date, asset=paper).count()
@@ -67,21 +66,21 @@ class IsraeliPaperScraper:
                 paper.symbol = None
             else:
                 paper.type = 'stock'
-                paper.symbol = symbol
+                paper.symbol = symbol[::-1]
 
             paper.name = name
             paper.paper_id = paper_id
             records = []
             if data_points:
                 paper.last_price = float(
-                    data_points[0]['C_p']) / 100.0 / self.conversion_rate
+                    data_points[0]['C_p']) / 100.0
                 paper.last_updated = timezone.now()
                 # creates list of AssetRecord objects
                 for point in data_points:
                     date = point['D_p']
                     date = datetime.datetime.strptime(date, '%d/%m/%Y')
                     record = AssetRecord(
-                        asset=paper, date=date, price=float(point['C_p']) / 100.0 / self.conversion_rate)
+                        asset=paper, date=date, price=float(point['C_p']) / 100.0)
                     records.append(record)
             return (paper, records)
 
@@ -115,14 +114,19 @@ class IsraeliPaperScraper:
                 thread.join()
         # save all the data into the database
         records = []
+        verified_papers = []
         for paper in self.papers_data:
             if len(paper) > 0:
                 if paper[0] is not None:
                     paper[0].save()
+                    verified_papers.append(paper[0])
                 if len(paper[1]) > 0:
                     records += paper[1]
 
         AssetRecord.objects.bulk_create(records)
+        for paper in verified_papers:
+            paper.calculate_returns()
+            paper.save()
 
         print('Israeli Scraper ended his work.')
 
@@ -166,11 +170,13 @@ class USPapersScraper:
         # (ticker, bulk_create_records, solo_records)
         create_records = []
         is_paper = True
+        verified_papers = []
         for paper in self.papers_data:
             if len(paper) > 0:
                 if paper[0] is not None:
                     try:
                         paper[0].save()
+                        verified_papers.append(paper[0])
                     except:
                         is_paper = False
                 if is_paper:
@@ -182,7 +188,49 @@ class USPapersScraper:
                 is_paper = True
         AssetRecord.objects.bulk_create(create_records)
 
+        for paper in verified_papers:
+            paper.calculate_returns()
+            paper.save()
+
         print('US Scraper ended his work.')
+
+    def get_new_uspaper_object(self, symbol, ticker_info):
+        paper = USPaper()
+        paper.type = 'Stock' if ticker_info['quoteType'] == 'EQUITY' else 'Etf'
+        paper.name = ticker_info['longName']
+        paper.symbol = symbol
+        paper.sector = ticker_info['sector'] if 'sector' in ticker_info else None
+        paper.industry = ticker_info['industry'] if 'industry' in ticker_info else None
+        paper.market_cap = ticker_info['marketCap'] if 'marketCap' in ticker_info else None
+        paper.business_summary = ticker_info['longBusinessSummary'] if 'longBusinessSummary' in ticker_info else None
+        paper.website_url = ticker_info['website'] if 'website' in ticker_info else None
+        paper.logo_url = ticker_info['logo_url'] if 'logo_url' in ticker_info else None
+        paper.fulltime_employees = ticker_info['fullTimeEmployees'] if 'fullTimeEmployees' in ticker_info else None
+        paper.one_year_high = ticker_info['fiftyTwoWeekHigh'] if 'fiftyTwoWeekHigh' in ticker_info else None
+        paper.one_year_low = ticker_info['fiftyTwoWeekLow'] if 'fiftyTwoWeekLow' in ticker_info else None
+        paper.enterprise_value = ticker_info['enterpriseValue'] if 'enterpriseValue' in ticker_info else None
+        paper.book_value = ticker_info['bookValue'] if 'bookValue' in ticker_info else None
+        paper.price_to_book = ticker_info['priceToBook'] if 'priceToBook' in ticker_info else None
+        paper.current_ratio = ticker_info['currentRatio'] if 'currentRatio' in ticker_info else None
+        paper.trailing_pe = ticker_info['trailingPE'] if 'trailingPE' in ticker_info else None
+        paper.forward_pe = ticker_info['forwardPE'] if 'forwardPE' in ticker_info else None
+        paper.peg_ratio = ticker_info['pegRatio'] if 'pegRatio' in ticker_info else None
+        paper.ps_ratio = ticker_info['priceToSalesTrailing12Months'] if 'priceToSalesTrailing12Months' in ticker_info else None
+        paper.revenue_growth = ticker_info['revenueGrowth'] if 'revenueGrowth' in ticker_info else None
+        paper.one_year_return = ticker_info['52WeekChange'] if '52WeekChange' in ticker_info else None
+        paper.num_of_analysts = ticker_info['numberOfAnalystOpinions'] if 'numberOfAnalystOpinions' in ticker_info else None
+        paper.mean_analyst_price = ticker_info['targetMeanPrice'] if 'targetMeanPrice' in ticker_info else None
+        return paper
+
+    def get_new_crypto_object(self,  symbol, crypto_info):
+        crypto = Crypto()
+        crypto.name = crypto_info['name']
+        crypto.description = crypto_info['description'] if 'description' in crypto_info else None
+        crypto.market_cap = crypto_info['marketCap'] if 'marketCap' in crypto_info else None
+        crypto.one_year_high = crypto_info['fiftyTwoWeekHigh'] if 'fiftyTwoWeekHigh' in crypto_info else None
+        crypto.one_year_low = crypto_info['fiftyTwoWeekLow'] if 'fiftyTwoWeekLow' in crypto_info else None
+        crypto.symbol = symbol
+        return crypto
 
     def scrape_stock(self, ticker):
         stock_df = []
@@ -194,10 +242,6 @@ class USPapersScraper:
             print(f'{symbol} quote type not found {ticker_info}')
             return (None, [], [])
 
-        quote_type = 'stock' if ticker_info['quoteType'] == 'EQUITY' else 'etf'
-        sector = ticker_info['sector'] if 'sector' in ticker_info else None
-        industry = ticker_info['industry'] if 'industry' in ticker_info else None
-        name = ticker_info['longName']
         stock_df = ticker.history(period="5y")
 
         has_history = len(stock_df) != 0
@@ -233,16 +277,10 @@ class USPapersScraper:
                 paper.last_updated = timezone.now()
                 return (paper, [], [new_record])
         except:
-            paper = USPaper()
-            paper.type = quote_type
-            paper.name = name
-            paper.symbol = symbol
-            paper.sector = sector
-            paper.industry = industry
+            paper = self.get_new_uspaper_object(symbol, ticker_info)
             records = []
 
             if has_history:
-
                 data_points = records_json['Close']
                 last_date = list(data_points.keys())[-1]
                 last_price = data_points[last_date]
@@ -295,9 +333,7 @@ class USPapersScraper:
                     new_record.save()
                     continue
             except:
-                crypto_obj = Crypto()
-                crypto_obj.symbol = crypto
-                crypto_obj.name = crypto_info['name']
+                crypto_obj = self.get_new_crypto_object(crypto, crypto_info)
                 records = []
 
                 last_date = list(data_points.keys())[-1]
@@ -314,6 +350,8 @@ class USPapersScraper:
                 crypto_obj.save()
                 print(f'crypto {crypto} saved')
                 AssetRecord.objects.bulk_create(records)
+                crypto_obj.calculate_returns()
+                crypto_obj.save()
                 print(f'crypto {crypto} saved records')
 
 

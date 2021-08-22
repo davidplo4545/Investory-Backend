@@ -291,6 +291,7 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
         actions = portfolio.actions.all()
         holdings = {}
         total_cost = 0
+        realized_gain = 0
         for action in actions:
             if action.asset in holdings:
                 is_buy = 1 if action.type == "BUY" else -1
@@ -301,8 +302,8 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                     holding.cost_basis = holding.total_cost / holding.quantity
                     holding.total_value = holding.calculate_total_value()
                 else:
-                    portfolio.realized_gain += action.quantity * (action.share_price
-                                                                  - holding.cost_basis)
+                    realized_gain += action.quantity * (action.share_price
+                                                        - holding.cost_basis)
                     if holding.quantity - action.quantity <= 0:
                         holdings.pop(action.asset)
                     else:
@@ -323,7 +324,7 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                 total_cost -= action.total_cost
             else:
                 total_cost += action.total_cost
-
+        portfolio.realized_gain = realized_gain
         Holding.objects.bulk_create(list(holdings.values()))
         return total_cost
 
@@ -351,6 +352,7 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
 
     def calculate_portfolio_records(self, portfolio, actions, is_create=True, old_actions=[]):
         records = {}
+        conversion_rate = 3.23
         dates_delta = (datetime.date.today() - portfolio.started_at).days
         portfolio_records = []
         current_assets = {}
@@ -417,10 +419,12 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                 # of the portfolio at the curr_date
                 if str(curr_date) in records:
                     records[str(curr_date)] += asset_record.price * \
-                        current_assets[asset]
+                        current_assets[asset] / \
+                        (conversion_rate if asset.currency == "ILS" else 1)
                 else:
                     records[str(curr_date)] = asset_record.price * \
-                        current_assets[asset]
+                        current_assets[asset] / \
+                        (conversion_rate if asset.currency == "ILS" else 1)
             portfolio_records.append(PortfolioRecord(
                 portfolio=portfolio, date=curr_date, price=records[str(curr_date)]))
         last_price = records[str(curr_date)]

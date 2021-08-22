@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 from api.scraper import USPapersScraper, IsraeliPaperScraper, Updater
+from api.models import AssetRecord, USPaper
 
 
 class Command(BaseCommand):

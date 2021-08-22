@@ -1,5 +1,6 @@
 import datetime
 from datetime import timedelta
+from dateutil.relativedelta import relativedelta
 from django.db import models
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
@@ -53,20 +54,67 @@ class Profile(models.Model):
 class Asset(models.Model):
     objects = InheritanceManager()
 
+    def get_return(self, records, last_record, months):
+        '''
+        Calculates and returns the paper return over
+        the 'months' period set.
+        If months is -1 it returns the year to date return
+        '''
+        if months == -1:
+            prev_date = last_record.date.replace(month=1, day=1)
+        else:
+            prev_date = last_record.date + relativedelta(months=-months)
+        prev_records = records.filter(
+            date__range=[prev_date - timedelta(31), prev_date])
+        if prev_records.count() == 0:
+            return None
+        prev_record = prev_records.last()
+        return (last_record.price / prev_record.price - 1) * 100
+
 
 class IsraelPaper(Asset):
     paper_id = models.IntegerField()
     type = models.CharField(
         max_length=9, choices=PAPER_TYPE_CHOICES, default="STOCK")
+    currency = models.CharField(
+        default="ILS",
+        max_length=9, editable=False)
+    location = models.CharField(
+        default="Israel",
+        max_length=20, editable=False)
     name = models.CharField(max_length=120)
     symbol = models.CharField(max_length=30, blank=True, null=True)
     last_price = models.FloatField(blank=True, null=True)
     last_updated = models.DateTimeField(blank=True, null=True)
 
+    # Returns
+    three_month_return = models.FloatField(blank=True, null=True)
+    six_month_return = models.FloatField(blank=True, null=True)
+    ytd_return = models.FloatField(blank=True, null=True)
+    one_year_return = models.FloatField(blank=True, null=True)
+    three_year_return = models.FloatField(blank=True, null=True)
+
+    def calculate_returns(self):
+        records = AssetRecord.objects.filter(asset=self)
+        if records.count() > 0:
+            last_record = records.last()
+
+            self.three_month_return = self.get_return(records, last_record, 3)
+            self.six_month_return = self.get_return(records, last_record, 6)
+            self.one_year_return = self.get_return(records, last_record, 12)
+            self.ytd_return = self.get_return(records, last_record, -1)
+            self.three_year_return = self.get_return(records, last_record, 36)
+
 
 class USPaper(Asset):
     type = models.CharField(
         max_length=9, choices=PAPER_TYPE_CHOICES, default="STOCK")
+    currency = models.CharField(
+        default="USD",
+        max_length=9, editable=False)
+    location = models.CharField(
+        default="United States",
+        max_length=20, editable=False)
     name = models.CharField(max_length=120)
     symbol = models.CharField(max_length=6)
     last_price = models.FloatField(blank=True, null=True)
@@ -95,24 +143,61 @@ class USPaper(Asset):
     revenue_growth = models.FloatField(blank=True, null=True)
 
     # Returns
+    three_month_return = models.FloatField(blank=True, null=True)
     six_month_return = models.FloatField(blank=True, null=True)
     ytd_return = models.FloatField(blank=True, null=True)
     one_year_return = models.FloatField(blank=True, null=True)
     three_year_return = models.FloatField(blank=True, null=True)
-    five_year_return = models.FloatField(blank=True, null=True)
 
     # Analysts
     num_of_analysts = models.IntegerField(blank=True, null=True)
     mean_analyst_price = models.FloatField(blank=True, null=True)
 
+    def calculate_returns(self):
+        records = AssetRecord.objects.filter(asset=self)
+        last_record = records.last()
+
+        self.three_month_return = self.get_return(records, last_record, 3)
+        self.six_month_return = self.get_return(records, last_record, 6)
+        self.ytd_return = self.get_return(records, last_record, -1)
+        self.three_year_return = self.get_return(records, last_record, 36)
+
 
 class Crypto(Asset):
     type = models.CharField(
-        max_length=9, default="Crypto", editable=False)
+        default="Crypto",
+        max_length=9, editable=False)
+    currency = models.CharField(
+        default="USD",
+        max_length=9, editable=False)
+    location = models.CharField(
+        default="Global",
+        max_length=9, editable=False)
     symbol = models.CharField(max_length=20)
     name = models.CharField(max_length=30)
     last_price = models.FloatField(blank=True, null=True)
     last_updated = models.DateTimeField(blank=True, null=True)
+
+    description = models.TextField(blank=True, null=True)
+    market_cap = models.FloatField(blank=True, null=True)
+    one_year_high = models.FloatField(blank=True, null=True)
+    one_year_low = models.FloatField(blank=True, null=True)
+
+    # Returns
+    three_month_return = models.FloatField(blank=True, null=True)
+    six_month_return = models.FloatField(blank=True, null=True)
+    ytd_return = models.FloatField(blank=True, null=True)
+    one_year_return = models.FloatField(blank=True, null=True)
+    three_year_return = models.FloatField(blank=True, null=True)
+
+    def calculate_returns(self):
+        records = AssetRecord.objects.filter(asset=self)
+        last_record = records.last()
+
+        self.three_month_return = self.get_return(records, last_record, 3)
+        self.six_month_return = self.get_return(records, last_record, 6)
+        self.ytd_return = self.get_return(records, last_record, -1)
+        self.three_year_return = self.get_return(records, last_record, 36)
 
 
 class AssetRecord(models.Model):
