@@ -417,14 +417,15 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
 
                 # add the asset_price * quantity to the total value
                 # of the portfolio at the curr_date
+                asset_obj = Asset.objects.get_subclass(id=asset.id)
                 if str(curr_date) in records:
                     records[str(curr_date)] += asset_record.price * \
                         current_assets[asset] / \
-                        (conversion_rate if asset.currency == "ILS" else 1)
+                        (conversion_rate if asset_obj.currency == "ILS" else 1)
                 else:
                     records[str(curr_date)] = asset_record.price * \
                         current_assets[asset] / \
-                        (conversion_rate if asset.currency == "ILS" else 1)
+                        (conversion_rate if asset_obj.currency == "ILS" else 1)
             portfolio_records.append(PortfolioRecord(
                 portfolio=portfolio, date=curr_date, price=records[str(curr_date)]))
         last_price = records[str(curr_date)]

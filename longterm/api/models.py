@@ -159,6 +159,7 @@ class USPaper(Asset):
 
         self.three_month_return = self.get_return(records, last_record, 3)
         self.six_month_return = self.get_return(records, last_record, 6)
+        self.one_year_return = self.get_return(records, last_record, 12)
         self.ytd_return = self.get_return(records, last_record, -1)
         self.three_year_return = self.get_return(records, last_record, 36)
 
@@ -196,6 +197,7 @@ class Crypto(Asset):
 
         self.three_month_return = self.get_return(records, last_record, 3)
         self.six_month_return = self.get_return(records, last_record, 6)
+        self.one_year_return = self.get_return(records, last_record, 12)
         self.ytd_return = self.get_return(records, last_record, -1)
         self.three_year_return = self.get_return(records, last_record, 36)
 

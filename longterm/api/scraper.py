@@ -194,8 +194,7 @@ class USPapersScraper:
 
         print('US Scraper ended his work.')
 
-    def get_new_uspaper_object(self, symbol, ticker_info):
-        paper = USPaper()
+    def set_uspaper_data(self, paper, symbol, ticker_info):
         paper.type = 'Stock' if ticker_info['quoteType'] == 'EQUITY' else 'Etf'
         paper.name = ticker_info['longName']
         paper.symbol = symbol
@@ -217,13 +216,11 @@ class USPapersScraper:
         paper.peg_ratio = ticker_info['pegRatio'] if 'pegRatio' in ticker_info else None
         paper.ps_ratio = ticker_info['priceToSalesTrailing12Months'] if 'priceToSalesTrailing12Months' in ticker_info else None
         paper.revenue_growth = ticker_info['revenueGrowth'] if 'revenueGrowth' in ticker_info else None
-        paper.one_year_return = ticker_info['52WeekChange'] if '52WeekChange' in ticker_info else None
         paper.num_of_analysts = ticker_info['numberOfAnalystOpinions'] if 'numberOfAnalystOpinions' in ticker_info else None
         paper.mean_analyst_price = ticker_info['targetMeanPrice'] if 'targetMeanPrice' in ticker_info else None
         return paper
 
-    def get_new_crypto_object(self,  symbol, crypto_info):
-        crypto = Crypto()
+    def set_crypto_data(self, crypto, symbol, crypto_info):
         crypto.name = crypto_info['name']
         crypto.description = crypto_info['description'] if 'description' in crypto_info else None
         crypto.market_cap = crypto_info['marketCap'] if 'marketCap' in crypto_info else None
@@ -256,6 +253,7 @@ class USPapersScraper:
         # check if ticker already exists in database
         try:
             paper = USPaper.objects.get(symbol=symbol)
+            paper = self.set_uspaper_data(paper, symbol, ticker_info)
             last_date = list(records_json['Close'].keys())[-1]
             last_price = records_json['Close'][last_date]
             try:
@@ -277,7 +275,8 @@ class USPapersScraper:
                 paper.last_updated = timezone.now()
                 return (paper, [], [new_record])
         except:
-            paper = self.get_new_uspaper_object(symbol, ticker_info)
+            paper = USPaper()
+            paper = self.set_uspaper_data(paper, symbol, ticker_info)
             records = []
 
             if has_history:
@@ -310,6 +309,8 @@ class USPapersScraper:
             # check if ticker already exists in database
             try:
                 crypto_obj = Crypto.objects.get(symbol=crypto)
+                crypto_obj = self.set_crypto_data(
+                    crypto_obj, crypto, crypto_info)
                 last_date = list(data_points.keys())[-1]
                 last_price = data_points[last_date]
                 try:
@@ -333,7 +334,9 @@ class USPapersScraper:
                     new_record.save()
                     continue
             except:
-                crypto_obj = self.get_new_crypto_object(crypto, crypto_info)
+                crypto_obj = Crypto()
+                crypto_obj = self.set_crypto_data(
+                    crypto_obj, crypto, crypto_info)
                 records = []
 
                 last_date = list(data_points.keys())[-1]
