@@ -80,30 +80,45 @@ class AssetSerializer(serializers.ModelSerializer):
         records_count = self.context['count']
         if isinstance(instance, IsraelPaper):
             data = IsraeliPaperSerializer(instance=instance).data
-            data['asset'] = 'ISR'
             # Show model records only if one paper is shown
             if records_count == 1:
                 records = AssetRecord.objects.filter(asset__id=instance.id)
                 records_data = AssetRecordSerializer(records, many=True).data
                 data['records'] = records_data
-            return data
+
         elif isinstance(instance, USPaper):
             data = USPaperSerializer(instance=instance).data
-            data['asset'] = 'US'
             if records_count == 1:
                 records = AssetRecord.objects.filter(asset__id=instance.id)
                 records_data = AssetRecordSerializer(records, many=True).data
                 data['records'] = records_data
-            return data
 
         elif isinstance(instance, Crypto):
             data = CryptoSerializer(instance=instance).data
-            data['asset'] = 'Crypto'
             if records_count == 1:
                 records = AssetRecord.objects.filter(asset__id=instance.id)
                 records_data = AssetRecordSerializer(records, many=True).data
                 data['records'] = records_data
-            return data
+        # remove not neccassary data to lower load on clinet
+        if records_count != 1:
+            for key in ['last_updated',
+                        'sector', 'forward_pe',
+                        'industry', 'peg_ratio',
+                        'market_cap', 'ps_ratio',
+                        'business_summary', 'revenue_growth',
+                        'website_url', 'three_month_return',
+                        'logo_url', 'six_month_return',
+                        'fulltime_employees', 'ytd_return',
+                        'one_year_high', 'one_year_return',
+                        'one_year_low', 'three_year_return',
+                        'enterprise_value', 'num_of_analysts',
+                        'book_value', 'mean_analyst_price',
+                        'price_to_book',
+                        'current_ratio',
+                        'trailing_pe']:
+                if key in data:
+                    data.pop(key)
+        return data
 
     class Meta:
         model = Asset
@@ -144,6 +159,11 @@ class IsraeliPaperSerializer(serializers.ModelSerializer):
     class Meta:
         model = IsraelPaper
         fields = '__all__'
+
+    # def to_representation(self, instance):
+    #     count = self.context['count']
+    #     if count == 1:
+    #         return super().to_representation()
 
 
 class USPaperSerializer(serializers.ModelSerializer):
@@ -468,6 +488,8 @@ class PortfolioComparisonCreateSerializer(serializers.Serializer):
     def create(self, validated_data):
         portfolio = self.context['portfolio']
         asset = validated_data['asset']
+        asset_obj = Asset.objects.get_subclass(id=asset.id)
+        exchange_rate = 3.23 if asset_obj.currency == "ILS" else 1
         portfolio_actions = portfolio.actions.all()
         asset_actions = []
         # Generate a list of actions for a portfolio with
@@ -489,7 +511,7 @@ class PortfolioComparisonCreateSerializer(serializers.Serializer):
                     raise serializers.ValidationError(
                         {'message': f'{asset.symbol} price not found at {action.completed_at}'})
 
-            asset_price = asset_record_at_action_date.price
+            asset_price = asset_record_at_action_date.price / exchange_rate
             quantity = action.total_cost / asset_price
             asset_action = {"type": action.type,
                             "asset_id": asset.id,

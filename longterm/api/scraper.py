@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from api.models import AssetRecord, Crypto, IsraelPaper, USPaper,\
-    Portfolio, PortfolioRecord, Holding
+    Portfolio, PortfolioRecord, Holding, Asset
 import django
 from dateutil import parser
 from dateutil.parser import parse
@@ -372,19 +372,23 @@ class Updater:
         total_cost = 0
         if holdings.count() > 0:
             for holding in holdings:
+                asset = Asset.objects.get_subclass(id=holding.asset.id)
+                exchange_rate = 3.23 if asset.currency == "ILS" else 1
                 # calculate the total_value of the holdings and
                 # add it to the total portfolio value
                 holding.total_value = holding.calculate_total_value()
-                total_value += holding.total_value
+                total_value += holding.total_value * exchange_rate
                 holding.save()
 
         actions = portfolio.actions.all()
         if actions.count() > 0:
             for action in actions:
+                asset = Asset.objects.get_subclass(id=action.asset.id)
+                exchange_rate = 3.23 if asset.currency == "ILS" else 1
                 if action.type == "SELL":
-                    total_cost -= action.total_cost
+                    total_cost -= action.total_cost * exchange_rate
                 else:
-                    total_cost += action.total_cost
+                    total_cost += action.total_cost * exchange_rate
 
         portfolio.total_value = total_value
         portfolio.total_cost = total_cost
