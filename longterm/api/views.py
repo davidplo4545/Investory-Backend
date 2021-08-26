@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, action
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from .models import User, Profile, Asset, IsraelPaper, USPaper, Crypto, \
     Portfolio, PortfolioComparison
@@ -42,7 +43,15 @@ class AssetViewSet(viewsets.ViewSet):
 
     def get_queryset(self):
         asset_type = self.request.query_params.get('type')
+        name_search = self.request.query_params.get('search')
         symbol = self.request.query_params.get('symbol')
+        if name_search is not None:
+            # filter inheritance manager to match all types of asset names
+            return Asset.objects.filter(Q(uspaper__name__contains=name_search) |
+                                        Q(israelpaper__name__contains=name_search) |
+                                        Q(crypto__name__contains=name_search)) \
+                .select_subclasses(USPaper, IsraelPaper, Crypto)
+
         if asset_type is not None:
             if asset_type == 'isr':
                 if symbol:

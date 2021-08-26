@@ -5,7 +5,7 @@ from rest_auth.registration.serializers import RegisterSerializer
 from datetime import timedelta
 import datetime
 
-from api.models import ACTION_CHOICES, User, Profile, Asset, USPaper, IsraelPaper, Crypto, AssetRecord, \
+from api.models import ACTION_CHOICES, ExchangeRate, User, Profile, Asset, USPaper, IsraelPaper, Crypto, AssetRecord, \
     Portfolio, PortfolioAction, PortfolioRecord, ACTION_CHOICES, Holding, PortfolioComparison
 
 
@@ -104,7 +104,7 @@ class AssetSerializer(serializers.ModelSerializer):
             for key in ['last_updated',
                         'sector', 'forward_pe',
                         'industry', 'peg_ratio',
-                        'market_cap', 'ps_ratio',
+                        'market_cap', 'ps_ratio', 'description',
                         'business_summary', 'revenue_growth',
                         'website_url', 'three_month_return',
                         'logo_url', 'six_month_return',
@@ -239,12 +239,12 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
         """
         profile = self.context['profile']
         action = self.context['action']
-        if 'name' in data and action != 'partial_update':
+        if 'name' in data:
             name = data['name']
             portfolios = Portfolio.objects.filter(profile=profile, name=name)
             if portfolios.count() > 0:
                 raise serializers.ValidationError(
-                    {"Validation error": "Portoflio with this name already exists."})
+                    {"message": "Portoflio with this name already exists."})
             else:
                 return data
         return data
@@ -372,7 +372,8 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
 
     def calculate_portfolio_records(self, portfolio, actions, is_create=True, old_actions=[]):
         records = {}
-        conversion_rate = 3.23
+        exchange_rate = ExchangeRate.objects.get(from_currency="ILS").rate
+
         dates_delta = (datetime.date.today() - portfolio.started_at).days
         portfolio_records = []
         current_assets = {}
@@ -400,7 +401,9 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                             else:
                                 actions.delete()
                             raise serializers.ValidationError(
-                                {'message': f'{action.type} at {action.completed_at} cannot be completed. (Negative Quantity)'})
+                                # {'message': f'{action.type} at {action.completed_at} cannot be completed. (Negative Quantity)'})
+                                {'message': 'Action changes made are not possible. (Negative Quantity)'})
+
                     else:
                         current_assets[action.asset] = is_buy * action.quantity
                         if current_assets[action.asset] < 0:
@@ -409,7 +412,8 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                             else:
                                 actions.delete()
                             raise serializers.ValidationError(
-                                {'message': f'{action.type} at {action.completed_at} cannot be completed. (Negative Quantity)'})
+                                {'message': 'Action changes made are not possible. (Negative Quantity)'})
+
             # iterate through every asset and get its price at the
             # curr_date
             for asset in current_assets:
@@ -441,11 +445,11 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                 if str(curr_date) in records:
                     records[str(curr_date)] += asset_record.price * \
                         current_assets[asset] / \
-                        (conversion_rate if asset_obj.currency == "ILS" else 1)
+                        (exchange_rate if asset_obj.currency == "ILS" else 1)
                 else:
                     records[str(curr_date)] = asset_record.price * \
                         current_assets[asset] / \
-                        (conversion_rate if asset_obj.currency == "ILS" else 1)
+                        (exchange_rate if asset_obj.currency == "ILS" else 1)
             portfolio_records.append(PortfolioRecord(
                 portfolio=portfolio, date=curr_date, price=records[str(curr_date)]))
         last_price = records[str(curr_date)]
@@ -489,7 +493,8 @@ class PortfolioComparisonCreateSerializer(serializers.Serializer):
         portfolio = self.context['portfolio']
         asset = validated_data['asset']
         asset_obj = Asset.objects.get_subclass(id=asset.id)
-        exchange_rate = 3.23 if asset_obj.currency == "ILS" else 1
+        exchange_rate = ExchangeRate.objects.get(from_currency="ILS").rate
+        exchange_rate = exchange_rate if asset_obj.currency == "ILS" else 1
         portfolio_actions = portfolio.actions.all()
         asset_actions = []
         # Generate a list of actions for a portfolio with

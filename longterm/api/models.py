@@ -24,6 +24,13 @@ ACTION_CHOICES = (
     (SELL, "SELL"),
 )
 
+USD = "USD"
+ILS = "ILS"
+CURRENCY_CHOICS = (
+    (USD, "USD"),
+    (ILS, "ILS"),
+)
+
 
 class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(max_length=254, unique=True)
@@ -70,6 +77,14 @@ class Asset(models.Model):
             return None
         prev_record = prev_records.last()
         return (last_record.price / prev_record.price - 1) * 100
+
+
+class ExchangeRate(models.Model):
+    from_currency = models.CharField(
+        max_length=9, choices=CURRENCY_CHOICS)
+    to_currency = models.CharField(
+        max_length=9, choices=CURRENCY_CHOICS)
+    rate = models.FloatField(null=True)
 
 
 class IsraelPaper(Asset):

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from api.models import AssetRecord, Crypto, IsraelPaper, USPaper,\
+from api.models import AssetRecord, Crypto, ExchangeRate, IsraelPaper, USPaper,\
     Portfolio, PortfolioRecord, Holding, Asset
 import django
 from dateutil import parser
@@ -11,7 +11,8 @@ from pathlib import Path
 import requests
 import csv
 import os
-import sys
+import requests
+from bs4 import BeautifulSoup
 import json
 import threading
 from django.utils import timezone
@@ -65,7 +66,7 @@ class IsraeliPaperScraper:
                 paper.type = 'ETF'
                 paper.symbol = None
             else:
-                paper.type = 'stock'
+                paper.type = 'Stock'
                 paper.symbol = symbol[::-1]
 
             paper.name = name
@@ -363,32 +364,34 @@ class Updater:
         return Portfolio.objects.all()
 
     def update_all_portfolios(self):
+        self.create_or_update_exchange_ratio()
+        exchange_rate = ExchangeRate.objects.get(from_currency="ILS").rate
         for portfolio in self.get_all_portfolios():
-            self.update_portfolio(portfolio)
+            self.update_portfolio(portfolio, exchange_rate)
 
-    def update_portfolio(self, portfolio):
+    def update_portfolio(self, portfolio, exchange_rate):
         holdings = portfolio.holdings.all()
         total_value = 0
         total_cost = 0
         if holdings.count() > 0:
             for holding in holdings:
                 asset = Asset.objects.get_subclass(id=holding.asset.id)
-                exchange_rate = 3.23 if asset.currency == "ILS" else 1
+                exchange_rate = exchange_rate if asset.currency == "ILS" else 1
                 # calculate the total_value of the holdings and
                 # add it to the total portfolio value
                 holding.total_value = holding.calculate_total_value()
-                total_value += holding.total_value * exchange_rate
+                total_value += holding.total_value / exchange_rate
                 holding.save()
 
         actions = portfolio.actions.all()
         if actions.count() > 0:
             for action in actions:
                 asset = Asset.objects.get_subclass(id=action.asset.id)
-                exchange_rate = 3.23 if asset.currency == "ILS" else 1
+                exchange_rate = exchange_rate if asset.currency == "ILS" else 1
                 if action.type == "SELL":
-                    total_cost -= action.total_cost * exchange_rate
+                    total_cost -= action.total_cost / exchange_rate
                 else:
-                    total_cost += action.total_cost * exchange_rate
+                    total_cost += action.total_cost / exchange_rate
 
         portfolio.total_value = total_value
         portfolio.total_cost = total_cost
@@ -406,3 +409,13 @@ class Updater:
             new_record.date = datetime.date.today()
             new_record.price = portfolio.total_value
             new_record.save()
+
+    def create_or_update_exchange_ratio(self):
+        exchange_obj = ExchangeRate.objects.get_or_create(
+            from_currency="ILS", to_currency="USD")[0]
+        r = requests.get(
+            'https://www.xe.com/currencyconverter/convert/?Amount=1&From=USD&To=ILS')
+        soup = BeautifulSoup(r.content, 'html.parser')
+        exchange_obj.rate = float(
+            soup.find('p', {'class': 'iGrAod'}).text.split()[0])
+        exchange_obj.save()
