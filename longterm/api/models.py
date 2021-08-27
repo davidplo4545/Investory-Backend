@@ -9,6 +9,8 @@ from django.db.models.fields import related
 from model_utils.managers import InheritanceManager
 from .managers import UserManager
 
+from .utils import create_shortened_url
+
 ETF = "ETF"
 STOCK = "STOCK"
 
@@ -232,15 +234,24 @@ class Portfolio(models.Model):
     # link_uid
     profile = models.ForeignKey(
         Profile, on_delete=models.CASCADE, related_name='portfolios', null=True)
-    is_shared = models.BooleanField(default=True)
+    is_shared = models.BooleanField(default=False)
     created_at = models.DateField(auto_now_add=True)
     started_at = models.DateField(blank=True, null=True)
     realized_gain = models.FloatField(default=0)
     total_value = models.FloatField(blank=True, default=0, editable=False)
     total_cost = models.FloatField(blank=True, default=0, editable=False)
+    short_url = models.CharField(max_length=15, unique=True, blank=True)
 
     class Meta:
         ordering = ('started_at',)
+
+    def save(self, *args, **kwargs):
+        # If the short url wasn't specified
+        if not self.short_url:
+            # We pass the model instance that is being saved
+            self.short_url = create_shortened_url(self)
+
+        super().save(*args, **kwargs)
 
 
 class PortfolioAction(models.Model):

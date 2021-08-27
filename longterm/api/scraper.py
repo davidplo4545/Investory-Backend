@@ -143,7 +143,6 @@ class USPapersScraper:
             ticker = row[0]
             self.papers_data.append(self.scrape_stock(
                 ticker))
-            print(f'{ticker} is done.')
         print(f'thread done running')
 
     def scrape_to_database(self):
@@ -185,7 +184,13 @@ class USPapersScraper:
                         create_records += paper[1]
                     if len(paper[2]) > 0:
                         for record in paper[2]:
-                            record.save()
+                            try:
+                                record.save()
+                            except:
+                                asset = Asset.objects.get_subclass(
+                                    id=record.asset.id)
+                                print(f'WARNING: {asset.symbol} {record.date}')
+
                 is_paper = True
         AssetRecord.objects.bulk_create(create_records)
 

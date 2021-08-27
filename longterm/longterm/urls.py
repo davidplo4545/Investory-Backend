@@ -27,4 +27,5 @@ urlpatterns = [
          name='facebook_login'),
     path('rest-auth/google/', social_views.GoogleLogin.as_view(), name='google_login'),
     path('accounts/', include('allauth.urls'), name='socialaccount_signup'),
+    path('<str:short_url>', views.ShortPortfolioDetail.as_view(), name='redirect'),
 ]

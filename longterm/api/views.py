@@ -2,6 +2,7 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, action
 from django.db.models import Q
+from rest_framework import generics
 from django.shortcuts import get_object_or_404
 from .models import User, Profile, Asset, IsraelPaper, USPaper, Crypto, \
     Portfolio, PortfolioComparison
@@ -9,7 +10,7 @@ from .serializers import AssetSerializer, PortfolioComparisonRetrieveSerializer,
     PortfolioCreateSerializer, \
     PortfolioListSerializer, PortfolioRetrieveSerializer, ProfileUpdateSerializer, UserSerializer,\
     PortfolioComparisonCreateSerializer
-from .permissions import IsPortfolioComparisonOwner, IsPortfolioOwner
+from .permissions import IsPortfolioComparisonOwner, IsPortfolioOwner, PortfolioRedirectPermission
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -203,3 +204,21 @@ class PortfolioComparisonViewSet(viewsets.ModelViewSet):
         asset_portfolio.delete()
         comparison.delete()
         return Response({'message': 'Successfuly delete the portfolio comparison.'})
+
+
+class ShortPortfolioDetail(generics.RetrieveAPIView):
+    queryset = Portfolio.objects.all()
+    serializer_class = PortfolioRetrieveSerializer
+    permission_classes = (PortfolioRedirectPermission,)
+
+    def get(self, request, *args, **kwargs):
+        if kwargs.get("short_url", None) is not None:
+            try:
+                portfolio = Portfolio.objects.get(
+                    short_url=kwargs.get('short_url'))
+                self.check_object_permissions(self.request, portfolio)
+                serializer = PortfolioRetrieveSerializer(portfolio)
+                return Response(serializer.data)
+            except:
+                pass
+        return Response({"message": "No portfolio found."}, status=status.HTTP_404_NOT_FOUND)
