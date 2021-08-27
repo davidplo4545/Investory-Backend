@@ -23,4 +23,6 @@ class IsPortfolioComparisonOwner(permissions.BasePermission):
 
 class PortfolioRedirectPermission(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
-        return obj.is_shared
+        if obj.is_shared:
+            return True
+        return obj.profile == request.user.profile

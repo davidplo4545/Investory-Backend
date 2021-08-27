@@ -130,17 +130,31 @@ class SingleAssetSerializer(serializers.ModelSerializer):
         try:
             obj = IsraelPaper.objects.get(id=instance.id)
             data = IsraeliPaperSerializer(instance=obj).data
-            data['asset'] = 'ISR'
         except:
             try:
                 obj = USPaper.objects.get(id=instance.id)
                 data = USPaperSerializer(instance=obj).data
-                data['asset'] = 'US'
             except:
                 obj = Crypto.objects.get(id=instance.id)
                 data = CryptoSerializer(instance=obj).data
-                data['asset'] = 'Crypto'
 
+        for key in ['last_updated',
+                    'sector', 'forward_pe',
+                    'industry', 'peg_ratio',
+                    'market_cap', 'ps_ratio', 'description',
+                    'business_summary', 'revenue_growth',
+                    'website_url', 'three_month_return',
+                    'logo_url', 'six_month_return',
+                    'fulltime_employees', 'ytd_return',
+                    'one_year_high', 'one_year_return',
+                    'one_year_low', 'three_year_return',
+                    'enterprise_value', 'num_of_analysts',
+                    'book_value', 'mean_analyst_price',
+                    'price_to_book',
+                    'current_ratio',
+                    'trailing_pe']:
+            if key in data:
+                data.pop(key)
         return data
 
     class Meta:
@@ -231,7 +245,8 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Portfolio
-        fields = ['id', 'name', 'actions', 'holdings', 'records', 'is_shared']
+        fields = ['id', 'name', 'actions', 'holdings',
+                  'records', 'is_shared', 'short_url']
 
     def validate(self, data):
         """
