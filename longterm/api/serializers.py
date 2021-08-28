@@ -282,7 +282,7 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
         PortfolioRecord.objects.bulk_create(records)
         total_cost = self.save_portfolio_holdings(portfolio)
         portfolio.total_value = total_value
-        portfolio.total_cost = total_cost
+        portfolio.total_cost = 0 if total_cost < 0 else total_cost
         portfolio.save()
         return portfolio
 
@@ -310,7 +310,7 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
                 holdings_to_delete.delete()
                 records_to_delete.delete()
                 total_cost = self.save_portfolio_holdings(instance)
-                instance.total_cost = total_cost
+                instance.total_cost = 0 if total_cost < 0 else total_cost
                 PortfolioRecord.objects.bulk_create(new_records)
 
             instance.total_value = total_value
