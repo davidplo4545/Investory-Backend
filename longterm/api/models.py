@@ -245,6 +245,49 @@ class Portfolio(models.Model):
     class Meta:
         ordering = ('started_at',)
 
+    def create_portfolio_holdings(self):
+        actions = self.actions.all()
+        holdings = {}
+        realized_gain = 0
+        for action in actions:
+            if action.asset in holdings:
+                is_buy = 1 if action.type == "BUY" else -1
+                holding = holdings[action.asset]
+                if is_buy == 1:
+                    holding.quantity += action.quantity * is_buy
+                    holding.total_cost += action.total_cost * is_buy
+                    holding.cost_basis = holding.total_cost / holding.quantity
+                    holding.total_value = holding.calculate_total_value()
+                else:
+                    realized_gain += action.quantity * (action.share_price
+                                                        - holding.cost_basis)
+                    if holding.quantity - action.quantity <= 0:
+                        holdings.pop(action.asset)
+                    else:
+                        holding.quantity += action.quantity * is_buy
+                        holding.total_cost -= holding.cost_basis * action.quantity
+                        holding.total_value = holding.calculate_total_value()
+            else:
+                holding = Holding()
+                holding.portfolio = self
+                holding.asset = action.asset
+                holding.quantity = action.quantity
+                holding.total_cost = action.total_cost
+                holding.cost_basis = holding.total_cost / holding.quantity
+                holding.total_value = holding.calculate_total_value()
+                holdings[action.asset] = holding
+
+        self.realized_gain = realized_gain
+        Holding.objects.bulk_create(list(holdings.values()))
+
+    def calculate_total_values(self):
+        total_cost = 0
+        total_value = 0
+        for holding in self.holdings.all():
+            total_cost += holding.total_cost
+            total_value += holding.total_value
+        return total_value, 0 if total_cost < 0 else total_cost
+
     def save(self, *args, **kwargs):
         # If the short url wasn't specified
         if not self.short_url:

@@ -4,6 +4,8 @@ from rest_framework import viewsets, status
 from rest_auth.registration.serializers import RegisterSerializer
 from datetime import timedelta
 import datetime
+import time
+
 
 from api.models import ACTION_CHOICES, ExchangeRate, User, Profile, Asset, USPaper, IsraelPaper, Crypto, AssetRecord, \
     Portfolio, PortfolioAction, PortfolioRecord, ACTION_CHOICES, Holding, PortfolioComparison
@@ -253,7 +255,6 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
         Check that user doesn't have portfolio with same name already.
         """
         profile = self.context['profile']
-        action = self.context['action']
         if 'name' in data:
             name = data['name']
             portfolios = Portfolio.objects.filter(profile=profile, name=name)
@@ -270,103 +271,88 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
         actions = validated_data['actions']
 
         portfolio.save()
-        self.validate_portfolio_actions(portfolio, actions)
+        self.validate_and_create_portfolio_actions(portfolio, actions)
+        portfolio.create_portfolio_holdings()
+        portfolio.total_value, portfolio.total_cost = \
+            portfolio.calculate_total_values()
 
         # set the earliest portfolio action date
         portfolio.started_at = portfolio.actions.order_by(
             'completed_at').first().completed_at
 
-        total_value,  records = self.calculate_portfolio_records(
-            portfolio, portfolio.actions.all(), True)
+        records = self.calculate_portfolio_records(
+            portfolio, portfolio.actions.all())
 
         PortfolioRecord.objects.bulk_create(records)
-        total_cost = self.save_portfolio_holdings(portfolio)
-        portfolio.total_value = total_value
-        portfolio.total_cost = 0 if total_cost < 0 else total_cost
+
         portfolio.save()
         return portfolio
 
     def update(self, instance, validated_data):
+        start = time.time()
         if 'actions' in validated_data:
-            records_to_delete = instance.records.all()
-            holdings_to_delete = instance.holdings.all()
+            records_pks_to_delete = list(instance.records.all().values_list(
+                'pk', flat=True))
+            holdings_pks_to_delete = list(instance.holdings.all().values_list(
+                'pk', flat=True))
             actions_pks_to_delete = list(instance.actions.all().values_list(
                 'pk', flat=True))
-            self.validate_portfolio_actions(
-                instance, validated_data['actions'])
+            self.validate_and_create_portfolio_actions(
+                instance, validated_data['actions'], False)
 
             new_actions = instance.actions.exclude(
                 pk__in=actions_pks_to_delete)
+
+            PortfolioAction.objects.filter(
+                pk__in=actions_pks_to_delete).delete()
+
             # set the earliest portfolio action date
             instance.started_at = new_actions.order_by('completed_at')[
                 0].completed_at
+            instance.create_portfolio_holdings()
 
-            total_value, new_records = self.calculate_portfolio_records(
-                instance, new_actions, False)
+            new_records = self.calculate_portfolio_records(
+                instance, new_actions)
+
             if new_records:
                 # delete old records and actions if everything is valid
-                PortfolioAction.objects.filter(
-                    pk__in=actions_pks_to_delete).delete()
-                holdings_to_delete.delete()
-                records_to_delete.delete()
-                total_cost = self.save_portfolio_holdings(instance)
-                instance.total_cost = 0 if total_cost < 0 else total_cost
+                Holding.objects.filter(
+                    pk__in=holdings_pks_to_delete).delete()
+                PortfolioRecord.objects.filter(
+                    pk__in=records_pks_to_delete).delete()
+                instance.total_value, instance.total_cost = \
+                    instance.calculate_total_values()
                 PortfolioRecord.objects.bulk_create(new_records)
 
-            instance.total_value = total_value
         if 'name' in validated_data:
             instance.name = validated_data['name']
         if 'is_shared' in validated_data:
             instance.is_shared = validated_data['is_shared']
-
+        print(time.time() - start)
         instance.save()
         return instance
 
-    def save_portfolio_holdings(self, portfolio):
-        actions = portfolio.actions.all()
-        holdings = {}
-        total_cost = 0
-        realized_gain = 0
-        for action in actions:
-            if action.asset in holdings:
-                is_buy = 1 if action.type == "BUY" else -1
-                holding = holdings[action.asset]
-                if is_buy == 1:
-                    holding.quantity += action.quantity * is_buy
-                    holding.total_cost += action.total_cost * is_buy
-                    holding.cost_basis = holding.total_cost / holding.quantity
-                    holding.total_value = holding.calculate_total_value()
-                else:
-                    realized_gain += action.quantity * (action.share_price
-                                                        - holding.cost_basis)
-                    if holding.quantity - action.quantity <= 0:
-                        holdings.pop(action.asset)
-                    else:
-                        holding.quantity += action.quantity * is_buy
-                        holding.total_cost -= holding.cost_basis * action.quantity
-                        holding.total_value = holding.calculate_total_value()
-            else:
-                holding = Holding()
-                holding.portfolio = portfolio
-                holding.asset = action.asset
-                holding.quantity = action.quantity
-                holding.total_cost = action.total_cost
-                holding.cost_basis = holding.total_cost / holding.quantity
-                holding.total_value = holding.calculate_total_value()
-                holdings[action.asset] = holding
-
-            if action.type == 'SELL':
-                total_cost -= action.total_cost
-            else:
-                total_cost += action.total_cost
-        portfolio.realized_gain = realized_gain
-        Holding.objects.bulk_create(list(holdings.values()))
-        return total_cost
-
-    def validate_portfolio_actions(self, portfolio, actions):
+    def validate_and_create_portfolio_actions(self, portfolio, actions, is_create):
         valid_serializers = []
+        asset_quantities = {}
         for action in actions:
-            action['asset_id'] = action['asset_id'].pk
+            is_buy = 1 if action['type'] == "BUY" else -1
+            asset = Asset.objects.get_subclass(id=action['asset_id'].pk)
+            action['asset_id'] = asset.pk
+            first_record_date = asset.records \
+                .first().date
+            if action['completed_at'] < first_record_date:
+                raise serializers.ValidationError(
+                    {'error': 'Actions are not valid (No asset data)'})
+            if asset not in asset_quantities:
+                asset_quantities[asset] = 0
+            asset_quantities[asset] += action['quantity'] * is_buy
+            # total quantity of buying/selling cannot be negative
+            if asset_quantities[asset] < 0:
+                if is_create:
+                    portfolio.delete()
+                raise serializers.ValidationError(
+                    {'error': 'Actions are not valid (Negative Quantity)'})
             serializer = PortfolioActionSerializer(
                 data=action, context={'portfolio': portfolio})
             if serializer.is_valid(raise_exception=True):
@@ -385,13 +371,35 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {'error': 'Actions are not valid'})
 
-    def calculate_portfolio_records(self, portfolio, actions, is_create=True, old_actions=[]):
-        records = {}
+    def get_record_at_date(self, portfolio, asset_quantities, curr_date, exchange_rate):
+        '''
+        Sums and returns a portfolio record with the
+        total value of the portfolio are the curretn date.
+        '''
+        price = 0
+
+        for asset, quantity in asset_quantities.items():
+            asset_obj = Asset.objects.get_subclass(id=asset.id)
+            # try to get the AssetRecord with the same date
+            # except if not found
+            asset_record = AssetRecord.objects.filter(
+                asset=asset,
+                date__lt=curr_date).last()
+            exchange_rate = exchange_rate if asset_obj.currency == "ILS" else 1
+            # add the asset_price * quantity to the total value
+            # of the portfolio at the curr_date
+            asset_obj = Asset.objects.get_subclass(id=asset.id)
+            price += asset_record.price * \
+                quantity / exchange_rate
+        return PortfolioRecord(
+            portfolio=portfolio, date=curr_date, price=price)
+
+    def calculate_portfolio_records(self, portfolio, actions):
         exchange_rate = ExchangeRate.objects.get(from_currency="ILS").rate
 
         dates_delta = (datetime.date.today() - portfolio.started_at).days
         portfolio_records = []
-        current_assets = {}
+        asset_quantities = {}
         # Iterate through all dates between the portfolio
         # started_at date (set as first record completion date)
         # till today.
@@ -402,73 +410,17 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
             # { Asset : Quantity } Dictionary
             if new_actions.count() > 0:
                 for action in new_actions:
-                    is_buy = 1
-                    if action.type == 'SELL':
-                        is_buy = -1
-                    # calculate gain/loss on SELL order
-                    if action.asset in current_assets:
-                        current_assets[action.asset] += is_buy * \
+                    is_buy = 1 if action.type == 'BUY' else -1
+                    # Sum/substract the quantity of shares
+                    if action.asset in asset_quantities:
+                        asset_quantities[action.asset] += is_buy * \
                             action.quantity
-                        if current_assets[action.asset] < 0:
-                            # negative quantity of stock (portfolio cannot exist)
-                            if is_create:
-                                portfolio.delete()
-                            else:
-                                actions.delete()
-                            raise serializers.ValidationError(
-                                # {'message': f'{action.type} at {action.completed_at} cannot be completed. (Negative Quantity)'})
-                                {'message': 'Action changes made are not possible. (Negative Quantity)'})
-
                     else:
-                        current_assets[action.asset] = is_buy * action.quantity
-                        if current_assets[action.asset] < 0:
-                            if is_create:
-                                portfolio.delete()
-                            else:
-                                actions.delete()
-                            raise serializers.ValidationError(
-                                {'message': 'Action changes made are not possible. (Negative Quantity)'})
-
-            # iterate through every asset and get its price at the
-            # curr_date
-            for asset in current_assets:
-                # try to get the AssetRecord with the same date
-                # except if not found
-                try:
-                    asset_record = AssetRecord.objects.get(asset=asset,
-                                                           date=curr_date)
-                except:
-                    # find the asset record in the curr_date - NOT EFFICIENT
-                    # Looking for range of dates because the date may
-                    # not be found the records (different trading days/holidays)
-                    asset_record = AssetRecord.objects.filter(
-                        asset=asset,
-                        date__range=[curr_date - timedelta(31), curr_date])
-                    if asset_record.count() > 0:
-                        asset_record = asset_record.last()
-                    else:
-                        if is_create:
-                            portfolio.delete()
-                        else:
-                            actions.delete()
-                        raise serializers.ValidationError(
-                            {'message': f'{asset.id} price not found at {curr_date}'})
-
-                # add the asset_price * quantity to the total value
-                # of the portfolio at the curr_date
-                asset_obj = Asset.objects.get_subclass(id=asset.id)
-                if str(curr_date) in records:
-                    records[str(curr_date)] += asset_record.price * \
-                        current_assets[asset] / \
-                        (exchange_rate if asset_obj.currency == "ILS" else 1)
-                else:
-                    records[str(curr_date)] = asset_record.price * \
-                        current_assets[asset] / \
-                        (exchange_rate if asset_obj.currency == "ILS" else 1)
-            portfolio_records.append(PortfolioRecord(
-                portfolio=portfolio, date=curr_date, price=records[str(curr_date)]))
-        last_price = records[str(curr_date)]
-        return (last_price, portfolio_records)
+                        asset_quantities[action.asset] = is_buy * \
+                            action.quantity
+            portfolio_records.append(self.get_record_at_date(portfolio,
+                                                             asset_quantities, curr_date, exchange_rate))
+        return portfolio_records
 
 
 class PortfolioRetrieveSerializer(serializers.ModelSerializer):
@@ -524,7 +476,11 @@ class PortfolioComparisonCreateSerializer(serializers.Serializer):
                 # not be found the records (different trading days/holidays)
                 asset_record_at_action_date = AssetRecord.objects.filter(
                     asset=asset,
-                    date__range=[action.completed_at - timedelta(31), action.completed_at])
+                    date__range=[action.completed_at - timedelta(5), action.completed_at])
+                if asset_record_at_action_date.count() == 0:
+                    asset_record_at_action_date = AssetRecord.objects.filter(
+                        asset=asset,
+                        date__range=[action.completed_at - timedelta(31), action.completed_at])
                 if asset_record_at_action_date.count() > 0:
                     asset_record_at_action_date = asset_record_at_action_date.last()
                 else:
