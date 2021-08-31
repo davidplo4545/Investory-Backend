@@ -1,3 +1,5 @@
+from django.http.request import HttpRequest
+from django.http.response import HttpResponse, JsonResponse
 from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, action
@@ -5,12 +7,13 @@ from django.db.models import Q
 from rest_framework import generics
 from django.shortcuts import get_object_or_404
 from .models import User, Profile, Asset, IsraelPaper, USPaper, Crypto, \
-    Portfolio, PortfolioComparison
+    Portfolio, PortfolioComparison, Holding
 from .serializers import AssetSerializer, PortfolioComparisonRetrieveSerializer, PortfolioComparisonListSerializer,\
     PortfolioCreateSerializer, \
     PortfolioListSerializer, PortfolioRetrieveSerializer, ProfileUpdateSerializer, UserSerializer,\
     PortfolioComparisonCreateSerializer
 from .permissions import IsPortfolioComparisonOwner, IsPortfolioOwner, PortfolioRedirectPermission
+from django.core import serializers
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -99,6 +102,17 @@ class AssetViewSet(viewsets.ViewSet):
         serializer = self.serializer_class(paper, context={'count': 1})
         return Response(serializer.data)
 
+    @action(detail=True, methods=['get'])
+    def portfolios_in(self, request, pk=None):
+        # hacked something out (tired!!!!)
+        portfolios = Portfolio.objects.filter(holdings__asset__id=pk) \
+            .exclude(profile=None) \
+            .values_list('pk', 'name')
+        result = []
+        for portfolio in portfolios:
+            result.append({'id': portfolio[0], 'name': portfolio[1]})
+        return JsonResponse(list(result), safe=False)
+
 
 class PortfolioViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "delete"]
@@ -141,7 +155,7 @@ class PortfolioViewSet(viewsets.ModelViewSet):
         serializer.save()
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'])
+    @ action(detail=False, methods=['get'])
     def me(self, request):
         """
         Returns the current authenticated user's portfolios
@@ -150,7 +164,7 @@ class PortfolioViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer_class()(queryset, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'])
+    @ action(detail=True, methods=['post'])
     def compare(self, request, pk=None):
         """
         Creates and returns a new PortfolioComparison object
