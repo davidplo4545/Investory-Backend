@@ -283,9 +283,12 @@ class Portfolio(models.Model):
     def calculate_total_values(self):
         total_cost = 0
         total_value = 0
-        for holding in self.holdings.all():
-            total_cost += holding.total_cost
-            total_value += holding.total_value
+        holdings = self.holdings.all()
+        for holding in holdings:
+            asset = Asset.objects.get_subclass(id=holding.asset.id)
+            exchange_rate = exchange_rate if asset.currency == "ILS" else 1
+            total_cost += holding.total_cost / exchange_rate
+            total_value += holding.total_value / exchange_rate
         return total_value, 0 if total_cost < 0 else total_cost
 
     def save(self, *args, **kwargs):

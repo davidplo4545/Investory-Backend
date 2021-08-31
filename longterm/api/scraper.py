@@ -377,7 +377,6 @@ class Updater:
     def update_portfolio(self, portfolio, exchange_rate):
         holdings = portfolio.holdings.all()
         total_value = 0
-        total_cost = 0
         if holdings.count() > 0:
             for holding in holdings:
                 asset = Asset.objects.get_subclass(id=holding.asset.id)
@@ -388,32 +387,13 @@ class Updater:
                 total_value += holding.total_value / exchange_rate
                 holding.save()
 
-        actions = portfolio.actions.all()
-        if actions.count() > 0:
-            for action in actions:
-                asset = Asset.objects.get_subclass(id=action.asset.id)
-                exchange_rate = exchange_rate if asset.currency == "ILS" else 1
-                if action.type == "SELL":
-                    total_cost -= action.total_cost / exchange_rate
-                else:
-                    total_cost += action.total_cost / exchange_rate
-
         portfolio.total_value = total_value
-        portfolio.total_cost = total_cost
         portfolio.save()
 
-        # Update/Create last record
-        try:
-            last_record = PortfolioRecord.objects.get(
-                portfolio=portfolio, date=datetime.date.today())
-            last_record.price = portfolio.total_value
-            last_record.save()
-        except:
-            new_record = PortfolioRecord()
-            new_record.portfolio = portfolio
-            new_record.date = datetime.date.today()
-            new_record.price = portfolio.total_value
-            new_record.save()
+        last_record, created = PortfolioRecord.objects.get_or_create(
+            portfolio=portfolio, date=datetime.date.today(),
+            defaults={'price': portfolio.total_value})
+        last_record.save()
 
     def create_or_update_exchange_ratio(self):
         exchange_obj = ExchangeRate.objects.get_or_create(
