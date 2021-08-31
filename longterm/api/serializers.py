@@ -3,7 +3,7 @@ from rest_framework import serializers
 from rest_framework import viewsets, status
 from rest_auth.registration.serializers import RegisterSerializer
 from datetime import timedelta
-import datetime
+from .tasks import create_portfolio_records
 import time
 
 
@@ -276,20 +276,15 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
         portfolio.total_value, portfolio.total_cost = \
             portfolio.calculate_total_values()
 
-        # set the earliest portfolio action date
-        portfolio.started_at = portfolio.actions.order_by(
-            'completed_at').first().completed_at
-
-        records = self.calculate_portfolio_records(
-            portfolio, portfolio.actions.all())
-
-        PortfolioRecord.objects.bulk_create(records)
+        action_pks = portfolio.actions.values_list('pk', flat=True)
+        # calling celery task to create the records
+        create_portfolio_records.delay(
+            portfolio.id, action_pks, [])
 
         portfolio.save()
         return portfolio
 
     def update(self, instance, validated_data):
-        start = time.time()
         if 'actions' in validated_data:
             records_pks_to_delete = list(instance.records.all().values_list(
                 'pk', flat=True))
@@ -300,35 +295,27 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
             self.validate_and_create_portfolio_actions(
                 instance, validated_data['actions'], False)
 
-            new_actions = instance.actions.exclude(
-                pk__in=actions_pks_to_delete)
+            action_pks = list(instance.actions.exclude(
+                pk__in=actions_pks_to_delete).values_list('pk', flat=True))
 
             PortfolioAction.objects.filter(
                 pk__in=actions_pks_to_delete).delete()
 
-            # set the earliest portfolio action date
-            instance.started_at = new_actions.order_by('completed_at')[
-                0].completed_at
             instance.create_portfolio_holdings()
 
-            new_records = self.calculate_portfolio_records(
-                instance, new_actions)
+            # calling celery task to create the records
+            create_portfolio_records.delay(
+                instance.id, action_pks, records_pks_to_delete)
 
-            if new_records:
-                # delete old records and actions if everything is valid
-                Holding.objects.filter(
-                    pk__in=holdings_pks_to_delete).delete()
-                PortfolioRecord.objects.filter(
-                    pk__in=records_pks_to_delete).delete()
-                instance.total_value, instance.total_cost = \
-                    instance.calculate_total_values()
-                PortfolioRecord.objects.bulk_create(new_records)
+            Holding.objects.filter(
+                pk__in=holdings_pks_to_delete).delete()
+            instance.total_value, instance.total_cost = \
+                instance.calculate_total_values()
 
         if 'name' in validated_data:
             instance.name = validated_data['name']
         if 'is_shared' in validated_data:
             instance.is_shared = validated_data['is_shared']
-        print(time.time() - start)
         instance.save()
         return instance
 
@@ -370,57 +357,6 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
         else:
             raise serializers.ValidationError(
                 {'error': 'Actions are not valid'})
-
-    def get_record_at_date(self, portfolio, asset_quantities, curr_date, exchange_rate):
-        '''
-        Sums and returns a portfolio record with the
-        total value of the portfolio are the curretn date.
-        '''
-        price = 0
-
-        for asset, quantity in asset_quantities.items():
-            asset_obj = Asset.objects.get_subclass(id=asset.id)
-            # try to get the AssetRecord with the same date
-            # except if not found
-            asset_record = AssetRecord.objects.filter(
-                asset=asset,
-                date__lt=curr_date).last()
-            exchange_rate = exchange_rate if asset_obj.currency == "ILS" else 1
-            # add the asset_price * quantity to the total value
-            # of the portfolio at the curr_date
-            asset_obj = Asset.objects.get_subclass(id=asset.id)
-            price += asset_record.price * \
-                quantity / exchange_rate
-        return PortfolioRecord(
-            portfolio=portfolio, date=curr_date, price=price)
-
-    def calculate_portfolio_records(self, portfolio, actions):
-        exchange_rate = ExchangeRate.objects.get(from_currency="ILS").rate
-
-        dates_delta = (datetime.date.today() - portfolio.started_at).days
-        portfolio_records = []
-        asset_quantities = {}
-        # Iterate through all dates between the portfolio
-        # started_at date (set as first record completion date)
-        # till today.
-        for i in range(dates_delta + 1):
-            curr_date = portfolio.started_at + timedelta(i)
-            new_actions = actions.filter(completed_at=curr_date)
-            #  add new holding if a new Action is found
-            # { Asset : Quantity } Dictionary
-            if new_actions.count() > 0:
-                for action in new_actions:
-                    is_buy = 1 if action.type == 'BUY' else -1
-                    # Sum/substract the quantity of shares
-                    if action.asset in asset_quantities:
-                        asset_quantities[action.asset] += is_buy * \
-                            action.quantity
-                    else:
-                        asset_quantities[action.asset] = is_buy * \
-                            action.quantity
-            portfolio_records.append(self.get_record_at_date(portfolio,
-                                                             asset_quantities, curr_date, exchange_rate))
-        return portfolio_records
 
 
 class PortfolioRetrieveSerializer(serializers.ModelSerializer):
