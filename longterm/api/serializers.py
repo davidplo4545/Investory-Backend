@@ -4,6 +4,7 @@ from rest_framework import viewsets, status
 from rest_auth.registration.serializers import RegisterSerializer
 from datetime import timedelta
 from .tasks import create_portfolio_records
+from .services import calculate_portfolio_records
 import time
 
 
@@ -271,15 +272,20 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
         actions = validated_data['actions']
 
         portfolio.save()
-        self.validate_and_create_portfolio_actions(portfolio, actions)
+        self.validate_and_create_portfolio_actions(
+            portfolio, validated_data['actions'], False)
+
         portfolio.create_portfolio_holdings()
         portfolio.total_value, portfolio.total_cost = \
             portfolio.calculate_total_values()
 
         action_pks = portfolio.actions.values_list('pk', flat=True)
         # calling celery task to create the records
-        create_portfolio_records.delay(
-            portfolio.id, action_pks, [])
+        if 'compare' in self.context:
+            calculate_portfolio_records(portfolio.id, action_pks, [])
+        else:
+            create_portfolio_records.delay(
+                portfolio.id, action_pks, [])
 
         portfolio.save()
         return portfolio
@@ -304,13 +310,19 @@ class PortfolioCreateSerializer(serializers.ModelSerializer):
             instance.create_portfolio_holdings()
 
             # calling celery task to create the records
-            create_portfolio_records.delay(
-                instance.id, action_pks, records_pks_to_delete)
+            create_portfolio_records.apply_async(
+                args=[instance.id, action_pks, records_pks_to_delete], queue='default')
 
             Holding.objects.filter(
                 pk__in=holdings_pks_to_delete).delete()
             instance.total_value, instance.total_cost = \
                 instance.calculate_total_values()
+            # delete previous portfolio comparisons
+            comparisons = PortfolioComparison.objects.filter(
+                portfolio=instance).\
+                values_list('asset_portfolio', flat=True)
+            Portfolio.objects.filter(
+                pk__in=list(comparisons)).delete()
 
         if 'name' in validated_data:
             instance.name = validated_data['name']
@@ -403,27 +415,11 @@ class PortfolioComparisonCreateSerializer(serializers.Serializer):
         # Generate a list of actions for a portfolio with
         # only one Asset that's being passed to the serializer
         for action in portfolio_actions:
-            try:
-                asset_record_at_action_date = AssetRecord.objects.get(asset=asset,
-                                                                      date=action.date)
-            except:
-                # find the asset record in the curr_date - NOT EFFICIENT
-                # Looking for range of dates because the date may
-                # not be found the records (different trading days/holidays)
-                asset_record_at_action_date = AssetRecord.objects.filter(
-                    asset=asset,
-                    date__range=[action.completed_at - timedelta(5), action.completed_at])
-                if asset_record_at_action_date.count() == 0:
-                    asset_record_at_action_date = AssetRecord.objects.filter(
-                        asset=asset,
-                        date__range=[action.completed_at - timedelta(31), action.completed_at])
-                if asset_record_at_action_date.count() > 0:
-                    asset_record_at_action_date = asset_record_at_action_date.last()
-                else:
-                    raise serializers.ValidationError(
-                        {'message': f'{asset.symbol} price not found at {action.completed_at}'})
+            asset_record = AssetRecord.objects.filter(
+                asset=asset,
+                date__lt=action.completed_at).last()
 
-            asset_price = asset_record_at_action_date.price / exchange_rate
+            asset_price = asset_record.price / exchange_rate
             quantity = action.total_cost / asset_price
             asset_action = {"type": action.type,
                             "asset_id": asset.id,
@@ -431,11 +427,10 @@ class PortfolioComparisonCreateSerializer(serializers.Serializer):
                             "share_price": asset_price,
                             "completed_at": action.completed_at}
             asset_actions.append(asset_action)
-
         name = f'{portfolio.name} vs {asset.symbol}'
         serializer_data = {"name": name, "actions": asset_actions}
         serializer = PortfolioCreateSerializer(data=serializer_data, context={
-            'profile': None, 'action': 'create'})
+            'profile': None, 'action': 'create', 'compare': True})
         serializer.is_valid(raise_exception=True)
         asset_portfolio = serializer.save()
         comparison = PortfolioComparison(asset_portfolio=asset_portfolio,

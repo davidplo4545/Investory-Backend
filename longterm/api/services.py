@@ -8,6 +8,8 @@ def calculate_portfolio_records(portfolio_id, action_pks, record_pks_to_delete):
     exchange_rate = ExchangeRate.objects.get(from_currency="ILS").rate
     portfolio = Portfolio.objects.get(id=portfolio_id)
     actions = PortfolioAction.objects.filter(pk__in=action_pks)
+    portfolio.started_at = actions.first().completed_at
+
     dates_delta = (datetime.date.today() - portfolio.started_at).days
     portfolio_records = []
     asset_quantities = {}
@@ -38,7 +40,6 @@ def calculate_portfolio_records(portfolio_id, action_pks, record_pks_to_delete):
             pk__in=record_pks_to_delete).delete()
     PortfolioRecord.objects.bulk_create(portfolio_records)
 
-    portfolio.started_at = portfolio.actions.first().completed_at
     portfolio.save()
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from api.models import AssetRecord, Crypto, ExchangeRate, IsraelPaper, USPaper,\
-    Portfolio, PortfolioRecord, Holding, Asset
+    Portfolio, PortfolioRecord, PortfolioComparison, Asset
 import django
 from dateutil import parser
 from dateutil.parser import parse
@@ -129,7 +129,7 @@ class IsraeliPaperScraper:
             paper.calculate_returns()
             paper.save()
 
-        print('Israeli Scraper ended his work.')
+        # print('Israeli Scraper ended his work.')
 
 
 class USPapersScraper:
@@ -143,7 +143,7 @@ class USPapersScraper:
             ticker = row[0]
             self.papers_data.append(self.scrape_stock(
                 ticker))
-        print(f'thread done running')
+        # print(f'thread done running')
 
     def scrape_to_database(self):
         with open(self.isr_stocks_csv_path, encoding='utf8') as csv_file:
@@ -189,7 +189,7 @@ class USPapersScraper:
                             except:
                                 asset = Asset.objects.get_subclass(
                                     id=record.asset.id)
-                                print(f'WARNING: {asset.symbol} {record.date}')
+                                # print(f'WARNING: {asset.symbol} {record.date}')
 
                 is_paper = True
         AssetRecord.objects.bulk_create(create_records)
@@ -198,7 +198,7 @@ class USPapersScraper:
             paper.calculate_returns()
             paper.save()
 
-        print('US Scraper ended his work.')
+        # print('US Scraper ended his work.')
 
     def set_uspaper_data(self, paper, symbol, ticker_info):
         paper.type = 'Stock' if ticker_info['quoteType'] == 'EQUITY' else 'Etf'
@@ -242,7 +242,7 @@ class USPapersScraper:
         ticker_info = ticker.info
         # end-case if quoteType does is not found
         if 'quoteType' not in ticker_info or 'longName' not in ticker_info:
-            print(f'{symbol} quote type not found {ticker_info}')
+            # print(f'{symbol} quote type not found {ticker_info}')
             return (None, [], [])
 
         stock_df = ticker.history(period="5y")
@@ -270,10 +270,10 @@ class USPapersScraper:
                 last_db_record.price = last_price
                 paper.last_price = last_price
                 paper.last_updated = timezone.now()
-                print(f'{symbol} Updating old record')
+                # print(f'{symbol} Updating old record')
                 return (paper, [], [last_db_record])
             except:
-                print(f'{symbol} Creating new record')
+                # print(f'{symbol} Creating new record')
                 # creates a new record with a new price and date
                 new_record = AssetRecord(
                     asset=paper, date=parse(last_date), price=last_price)
@@ -311,7 +311,6 @@ class USPapersScraper:
                 columns=['Volume', 'High', 'Low', 'Open', 'Dividends', 'Stock Splits'])
             crypto_json = json.loads(crypto_df.to_json(date_format='iso'))
             data_points = crypto_json['Close']
-            print(f'Scraping Crypto {crypto}')
             # check if ticker already exists in database
             try:
                 crypto_obj = Crypto.objects.get(symbol=crypto)
@@ -357,11 +356,9 @@ class USPapersScraper:
                     except:
                         break
                 crypto_obj.save()
-                print(f'crypto {crypto} saved')
                 AssetRecord.objects.bulk_create(records)
                 crypto_obj.calculate_returns()
                 crypto_obj.save()
-                print(f'crypto {crypto} saved records')
 
 
 class Updater:
@@ -389,6 +386,13 @@ class Updater:
 
         portfolio.total_value = total_value
         portfolio.save()
+
+        # delete previous portfolio comparisons
+        comparisons = PortfolioComparison.objects.filter(
+            portfolio=portfolio).\
+            values_list('asset_portfolio', flat=True)
+        Portfolio.objects.filter(
+            pk__in=list(comparisons)).delete()
 
         last_record, created = PortfolioRecord.objects.get_or_create(
             portfolio=portfolio, date=datetime.date.today(),

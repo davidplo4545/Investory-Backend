@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
+from kombu import Queue
 from pathlib import Path
 import os
 import environ
@@ -56,6 +57,7 @@ INSTALLED_APPS = [
     'rest_auth.registration',
     'api.apps.ApiConfig',
     'corsheaders',
+    'django_celery_beat',
 ]
 
 
@@ -131,7 +133,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Jerusalem'
 
 USE_I18N = True
 
@@ -183,3 +185,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
 ALLOWED_HOSTS = ['*']
+
+CELERY_DEFAULT_QUEUE = 'default'
+CELERY_QUEUES = (
+    Queue('default'),
+    Queue('scraper'),
+)
+
+CELERY_TIMEZONE = 'Asia/Jerusalem'
