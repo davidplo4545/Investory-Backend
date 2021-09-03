@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    # 'django.contrib.staticfiles',
+    'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
     'rest_auth',
@@ -141,7 +141,10 @@ USE_L10N = True
 
 USE_TZ = True
 
-STATIC_URL = "/static/"
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
+
 AUTH_USER_MODEL = 'api.User'
 REST_AUTH_REGISTER_SERIALIZERS = {
     'REGISTER_SERIALIZER': 'api.serializers.RegisterSerializer',
