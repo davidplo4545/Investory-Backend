@@ -205,6 +205,9 @@ CELERY_QUEUES = (
     Queue('scraper'),
 )
 
+CELERY_RESULT_BACKEND = os.environ.get('CLOUDAMQP_URL', 'django://')
+CELERY_BROKER_URL = os.environ.get('CLOUDAMQP_URL', 'django://')
+
 CELERY_TIMEZONE = 'Asia/Jerusalem'
 
 
