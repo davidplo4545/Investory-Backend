@@ -16,29 +16,29 @@ app.conf.update(BROKER_URL=os.environ['CLOUDAMQP_URL'],
 app.conf.beat_schedule = {
     'scrape us stocks': {
         'task': 'api.tasks.scrape_us_stocks',
-        'schedule': crontab(day_of_week='mon,tue,wed,thu,fri',
+        'schedule': crontab(day_of_week='mon,tue,wed,thu,fri, sat',
                             hour='17-0',
-                            minute='0'
+                            minute='*/30'
                             ),
-        'options': {'queue': 'scraper'},
+        'options': {'queue': 'default'},
     },
     'scrape israeli stocks': {
         'task': 'api.tasks.scrape_isr_stocks',
         'schedule': crontab(day_of_week='sun,mon,tue,wed,thu',
                             hour='10-17',
-                            minute='0'
+                            minute='*/30'
                             ),
-        'options': {'queue': 'scraper'},
+        'options': {'queue': 'default'},
     },
     # updates portfolio every day, every hour between 10:00 - 00:00
-    'update portfolios': {
-        'task': 'api.tasks.update_portfolios',
-        'schedule': crontab(day_of_week='sun,mon,tue,wed,thu,fri,sat',
-                            hour='10-0',
-                            minute='*/15'
-                            ),
-        'options': {'queue': 'scraper'},
-    },
+    # 'update portfolios': {
+    #     'task': 'api.tasks.update_portfolios',
+    #     'schedule': crontab(day_of_week='sun,mon,tue,wed,thu,fri,sat',
+    #                         hour='10-0',
+    #                         minute='*/15'
+    #                         ),
+    #     'options': {'queue': 'default'},
+    # },
 }
 
 
