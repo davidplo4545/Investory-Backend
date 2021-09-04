@@ -27,9 +27,9 @@ app.conf.beat_schedule = {
     },
     'scrape israeli stocks': {
         'task': 'api.tasks.scrape_isr_stocks',
-        'schedule': crontab(day_of_week='sun,mon,tue,wed,thu',
-                            hour='10-17',
-                            minute='*/5'
+        'schedule': crontab(day_of_week='sun,mon,tue,wed,thu,sat',
+                            hour='10-0',
+                            minute='*/8'
                             ),
         'options': {'queue': 'default'},
     },
