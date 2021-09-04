@@ -9,8 +9,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         us_scraper = USPapersScraper()
         # scrape us stocks
-        print('Scraping us stocks')
-        us_scraper.scrape_to_database()
+        # print('Scraping us stocks')
+        # us_scraper.scrape_to_database()
 
         isr_scraper = IsraeliPaperScraper()
 
