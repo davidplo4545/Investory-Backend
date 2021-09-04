@@ -311,7 +311,6 @@ class USPapersScraper:
             crypto_df = crypto_df.drop(
                 columns=['Volume', 'High', 'Low', 'Open', 'Dividends', 'Stock Splits'])
             crypto_json = json.loads(crypto_df.to_json(date_format='iso'))
-            print(crypto_json)
             data_points = crypto_json['Close']
             # check if ticker already exists in database
             try:
