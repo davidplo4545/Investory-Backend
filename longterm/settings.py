@@ -199,15 +199,11 @@ CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
 ALLOWED_HOSTS = ['*']
 
-# CELERY_DEFAULT_QUEUE = 'default'
+CELERY_DEFAULT_QUEUE = 'default'
 # CELERY_QUEUES = (
 #     Queue('default'),
 #     Queue('scraper'),
 # )
-
-CELERY_BROKER_URL = 'redis://:p92d13a2e6eb27df30d242c49a89fe11cdf665ca55c020c9770f88c5869eb9e83@ec2-108-129-10-117.eu-west-1.compute.amazonaws.com:10460'
-
-CELERY_RESULT_BACKEND = 'redis://:p92d13a2e6eb27df30d242c49a89fe11cdf665ca55c020c9770f88c5869eb9e83@ec2-108-129-10-117.eu-west-1.compute.amazonaws.com:10460'
 
 
 CELERY_TIMEZONE = 'Asia/Jerusalem'
