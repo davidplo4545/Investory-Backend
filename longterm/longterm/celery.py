@@ -7,8 +7,7 @@ from celery.schedules import crontab
 from .settings import CELERY_BROKER_URL, CELERY_RESULT_BACKEND
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'longterm.settings')
 
-app = Celery('longterm', broker=CELERY_BROKER_URL,
-             result_backend=CELERY_RESULT_BACKEND)
+app = Celery('longterm')
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
 # app.conf.update(BROKER_URL=os.environ['CLOUDAMQP_URL'],
