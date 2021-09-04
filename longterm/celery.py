@@ -17,15 +17,11 @@ app.conf.update(BROKER_URL=os.environ['REDIS_URL'],
 #                 CELERY_RESULT_BACKEND=os.environ['CLOUDAMQP_URL'])
 
 app.conf.beat_schedule = {
-    "run-me-every-ten-seconds": {
-        "task": "api.tasks.check",
-        "schedule": 10.0
-    },
     'scrape us stocks': {
         'task': 'api.tasks.scrape_us_stocks',
         'schedule': crontab(day_of_week='mon,tue,wed,thu,fri,sat',
                             hour='17-0',
-                            minute='0'
+                            minute='*/15'
                             ),
         'options': {'queue': 'default'},
     },
@@ -33,7 +29,7 @@ app.conf.beat_schedule = {
         'task': 'api.tasks.scrape_isr_stocks',
         'schedule': crontab(day_of_week='sun,mon,tue,wed,thu',
                             hour='10-17',
-                            minute='0'
+                            minute='*/5'
                             ),
         'options': {'queue': 'default'},
     },
