@@ -7,11 +7,11 @@ from celery.schedules import crontab
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'longterm.settings')
 
-app.conf.update(BROKER_URL=os.environ['REDIS_URL'],
-                CELERY_RESULT_BACKEND=os.environ['REDIS_URL'])
 
 app = Celery('longterm')
 app.config_from_object('django.conf:settings', namespace='CELERY')
+app.conf.update(BROKER_URL=os.environ['REDIS_URL'],
+                CELERY_RESULT_BACKEND=os.environ['REDIS_URL'])
 
 # app.conf.update(BROKER_URL=os.environ['CLOUDAMQP_URL'],
 #                 CELERY_RESULT_BACKEND=os.environ['CLOUDAMQP_URL'])
