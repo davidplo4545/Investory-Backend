@@ -16,9 +16,10 @@ from bs4 import BeautifulSoup
 import json
 import threading
 from django.utils import timezone
+from longterm.settings import BASE_DIR
 
 DIR_PATH = os.path.join(
-    'C:\\Users\\David\\Desktop\\Projects\\Long-Term\\longterm\\longterm', 'media')
+    BASE_DIR, 'longterm', 'media')
 
 
 class IsraeliPaperScraper:

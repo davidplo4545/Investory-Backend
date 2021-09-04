@@ -23,9 +23,10 @@ urlpatterns = [
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path('api/', include('rest_auth.urls')),  # login / logout / user
     path('api/register/', include('rest_auth.registration.urls')),
-    path('rest-auth/facebook/', social_views.FacebookLogin.as_view(),
-         name='facebook_login'),
+    #     path('rest-auth/facebook/', social_views.FacebookLogin.as_view(),
+    #          name='facebook_login'),
     path('rest-auth/google/', social_views.GoogleLogin.as_view(), name='google_login'),
     path('accounts/', include('allauth.urls'), name='socialaccount_signup'),
-    path('api/<str:short_url>', views.ShortPortfolioDetail.as_view(), name='redirect'),
+    path('api/shared/<str:short_url>',
+         views.ShortPortfolioDetail.as_view(), name='redirect'),
 ]
