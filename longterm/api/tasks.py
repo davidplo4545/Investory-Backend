@@ -17,6 +17,11 @@ def create_portfolio_records(portfolio_id, action_pks, record_pks_to_delete):
     logger.info(f'Created portfolio records.')
 
 
+@app.task
+def check():
+    print('checking your stuff')
+
+
 '''
 Tasks for the 'scraper' queue (period tasks worker)
 '''
