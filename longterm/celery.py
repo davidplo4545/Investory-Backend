@@ -32,7 +32,7 @@ app.conf.beat_schedule = {
     #                         minute='*/8'
     #                         ),
     #     'options': {'queue': 'default'},
-    },
+    # },
     # updates portfolio every day, every hour between 10:00 - 00:00
     # 'update portfolios': {
     #     'task': 'api.tasks.update_portfolios',
