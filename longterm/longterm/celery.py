@@ -35,7 +35,7 @@ app.conf.beat_schedule = {
         'task': 'api.tasks.update_portfolios',
         'schedule': crontab(day_of_week='sun,mon,tue,wed,thu,fri,sat',
                             hour='10-0',
-                            minute='0'
+                            minute='*/15'
                             ),
         'options': {'queue': 'scraper'},
     },
