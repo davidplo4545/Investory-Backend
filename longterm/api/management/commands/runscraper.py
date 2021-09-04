@@ -12,11 +12,11 @@ class Command(BaseCommand):
         # print('Scraping us stocks')
         # us_scraper.scrape_to_database()
 
-        isr_scraper = IsraeliPaperScraper()
+        # isr_scraper = IsraeliPaperScraper()
 
-        print('Scraping israeli stocks')
+        # print('Scraping israeli stocks')
         # scrape israeli stocks
-        isr_scraper.scrape_to_database()
+        # isr_scraper.scrape_to_database()
 
         print('Scraping cryptos')
         # scrape crypto
